@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace OnlineCoursesPlatform.Controllers.AdminControllers
+namespace OnlineCoursesPlatform.Controllers
 {
-    public class CatigoriesController : Controller
+    public class LearningController : Controller
     {
         // GET: CatigoriesController
         public ActionResult Index()

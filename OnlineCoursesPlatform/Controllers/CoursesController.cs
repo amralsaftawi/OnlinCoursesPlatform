@@ -1,29 +1,29 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace OnlineCoursesPlatform.Controllers.AdminControllers
+namespace OnlineCoursesPlatform.Controllers
 {
-    public class TagsController : Controller
+    public class CoursesController : Controller
     {
-        // GET: TagsController
+        // GET: CoursesController
         public ActionResult Index()
         {
-            return View();
+            return Content("HI");
         }
 
-        // GET: TagsController/Details/5
+        // GET: CoursesController/Details/5
         public ActionResult Details(int id)
         {
             return View();
         }
 
-        // GET: TagsController/Create
+        // GET: CoursesController/Create
         public ActionResult Create()
         {
             return View();
         }
 
-        // POST: TagsController/Create
+        // POST: CoursesController/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Create(IFormCollection collection)
@@ -38,13 +38,13 @@ namespace OnlineCoursesPlatform.Controllers.AdminControllers
             }
         }
 
-        // GET: TagsController/Edit/5
+        // GET: CoursesController/Edit/5
         public ActionResult Edit(int id)
         {
             return View();
         }
 
-        // POST: TagsController/Edit/5
+        // POST: CoursesController/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Edit(int id, IFormCollection collection)
@@ -59,13 +59,13 @@ namespace OnlineCoursesPlatform.Controllers.AdminControllers
             }
         }
 
-        // GET: TagsController/Delete/5
+        // GET: CoursesController/Delete/5
         public ActionResult Delete(int id)
         {
             return View();
         }
 
-        // POST: TagsController/Delete/5
+        // POST: CoursesController/Delete/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult Delete(int id, IFormCollection collection)
