@@ -1,50 +1,118 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Identity
+@* تأكد من أن المسار هنا يطابق موديل اليوزر الخاص بك *@
+@inject UserManager<OnlineCoursesPlatform.Models.User> userManager
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - OnlineCoursesPlatform</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/OnlineCoursesPlatform.styles.css" asp-append-version="true" />
+    <title>@ViewData["Title"] - EduMaster</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root { --primary-color: #5e72e4; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; display: flex; flex-direction: column; min-height: 100vh; }
+        .navbar { background-color: #1a1a1a !important; }
+        main { flex: 1; }
+        .footer { background: #ffffff; border-top: 1px solid #dee2e6; }
+        /* تحسين شكل الـ Navbar Dropdown */
+        .img-profile { object-fit: cover; border: 2px solid var(--primary-color); }
+    </style>
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">OnlineCoursesPlatform</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+
+    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-3">
+        <div class="container">
+            <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">
+                <i class="fas fa-graduation-cap text-primary me-2"></i>Edu<span class="text-primary">Master</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link" asp-controller="Courses" asp-action="Index">Browse Courses</a></li>
+                    @if (User.IsInRole("Instructor")) {
+                        <li class="nav-item"><a class="nav-link text-warning fw-bold" asp-controller="Instructor" asp-action="Index">Instructor Panel</a></li>
+                    }
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        @* جلب اليوزر الحالي لعرض صورته واسمه *@
+                        var currentUser = await userManager.GetUserAsync(User);
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="me-2 d-none d-lg-inline text-white small">@(currentUser?.FirstName ?? User.Identity.Name)</span>
+                                <img class="rounded-circle img-profile" 
+                                     src="~/images/profiles/@(currentUser?.ProfilePicture ?? "default-avatar.png")" 
+                                     width="35" height="35">
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile"><i class="fas fa-user fa-sm fa-fw me-2 text-gray-400"></i> My Profile</a></li>
+                                <li><a class="dropdown-item" asp-controller="Account" asp-action="EditProfile"><i class="fas fa-cogs fa-sm fa-fw me-2 text-gray-400"></i> Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                        <button type="submit" class="dropdown-item text-danger border-0 bg-transparent w-100 text-start">
+                                            <i class="fas fa-sign-out-alt fa-sm fa-fw me-2"></i> Logout
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item"><a class="nav-link" asp-controller="Account" asp-action="Login">Login</a></li>
+                        <li class="nav-item"><a class="btn btn-primary rounded-pill px-4 ms-lg-2" asp-controller="Account" asp-action="Register">Join for Free</a></li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main role="main" class="py-4">
+        <div class="container">
+            @RenderBody()
+        </div>
+    </main>
+
+    <footer class="footer py-5 mt-5">
+        <div class="container text-center text-md-start">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h5 class="text-primary fw-bold">EduMaster</h5>
+                    <p class="text-muted small">The ultimate platform for learning and teaching online. Join thousands of students today.</p>
+                </div>
+                <div class="col-md-4 mb-4 text-center">
+                    <h6 class="fw-bold mb-3">Quick Links</h6>
+                    <ul class="list-unstyled small">
+                        <li><a href="#" class="text-muted text-decoration-none">Privacy Policy</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">Terms of Service</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">Contact Us</a></li>
                     </ul>
                 </div>
+                <div class="col-md-4 mb-4 text-md-end">
+                    <h6 class="fw-bold mb-3">Follow Us</h6>
+                    <div class="h4">
+                        <i class="fab fa-facebook text-muted me-3"></i>
+                        <i class="fab fa-twitter text-muted me-3"></i>
+                        <i class="fab fa-github text-muted"></i>
+                    </div>
+                </div>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - OnlineCoursesPlatform - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            <hr>
+            <p class="text-center text-muted small mb-0">© 2026 EduMaster. Built for Production.</p>
         </div>
     </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

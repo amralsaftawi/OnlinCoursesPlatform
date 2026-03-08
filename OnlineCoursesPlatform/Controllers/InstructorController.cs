@@ -1,83 +1,55 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using OnlinCoursePlatform.Abstrctions;
+using OnlinCoursePlatform.Dtos;
+using OnlineCoursesPlatform.Models;
 
-namespace OnlineCoursesPlatform.Controllers
+namespace OnlinCoursesPlatform.Controllers;
+
+public class InstructorController(UserManager<User> userManager,IInstructorService instructorService) : Controller
 {
-    public class InstructorController : Controller
+    private readonly IInstructorService _instructorService=instructorService;
+    private readonly UserManager<User> _userManager=userManager;
+
+
+public async Task<IActionResult> Index()
+{
+    var stats = new InstructorStatsDto
     {
-        // GET: InstructorController
-        public ActionResult Index()
-        {
-            return View();
-        }
+        TotalCourses = 3,
+        TotalStudents = 120,
+        TotalRevenue = 4500
+    };
 
-        // GET: InstructorController/Details/5
-        public ActionResult Details(int id)
-        {
-            return View();
-        }
+    return View(stats);
+}
 
-        // GET: InstructorController/Create
-        public ActionResult Create()
-        {
-            return View();
+  public async Task<IActionResult> MyCourses()
+{
+    // داتا وهمية للتيست فقط
+    var fakeCourses = new List<InstructorCourseDto>
+    {
+        new InstructorCourseDto { 
+            Id = 1, Title = "Mastering ASP.NET Core 9", 
+            CategoryName = "Development", Price = 49.99m, 
+            EnrollmentsCount = 150, Status = "Published",
+            ImageUrl = "https://placehold.co/600x400/5e72e4/white?text=ASP.NET+Core"
+        },
+        new InstructorCourseDto { 
+            Id = 2, Title = "Advanced SQL Server", 
+            CategoryName = "Database", Price = 35.00m, 
+            EnrollmentsCount = 85, Status = "Published",
+            ImageUrl = "https://placehold.co/600x400/2dce89/white?text=SQL+Server"
+        },
+        new InstructorCourseDto { 
+            Id = 3, Title = "Entity Framework Pro", 
+            CategoryName = "Development", Price = 29.00m, 
+            EnrollmentsCount = 0, Status = "Draft",
+            ImageUrl = "https://placehold.co/600x400/11cdef/white?text=EF+Core"
         }
+    };
 
-        // POST: InstructorController/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
-
-        // GET: InstructorController/Edit/5
-        public ActionResult Edit(int id)
-        {
-            return View();
-        }
-
-        // POST: InstructorController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
-
-        // GET: InstructorController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
-        }
-
-        // POST: InstructorController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
-    }
+    return View(fakeCourses);
+}
 }

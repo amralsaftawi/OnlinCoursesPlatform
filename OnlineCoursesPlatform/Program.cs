@@ -1,6 +1,34 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using OnlinCoursePlatform.Abstrctions;
+using OnlinCoursePlatform.Services;
+using OnlinCoursesPlatform.Data;
+using OnlineCoursesPlatform.Models;
+using OnlineCoursesPlatform.Models.Enums;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
+// استبدل DefaultConnection بالاسم الموجود في appsettings.json
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+builder.Services.AddScoped<IInstructorService, InstructorService>();
+
+// إضافة خدمات الـ Identity وربطها بالـ DbContext والـ Role
+builder.Services.AddIdentity<User, IdentityRole<int>>(options => {
+    // إعدادات اختيارية (مثلاً المتطلبات الخاصة بكلمة السر)
+    options.Password.RequireDigit = false;
+    options.Password.RequiredLength = 6;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = false;
+    options.Password.RequireLowercase = false;
+})
+.AddEntityFrameworkStores<AppDbContext>() // ده السطر اللي كان ناقص عشان يربط الـ UserManager بالداتابيز
+.AddDefaultTokenProviders();
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
@@ -16,6 +44,7 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
@@ -26,4 +55,22 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 
+
+
+// Seeding Roles
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
+    
+    // هنجيب كل الأسماء اللي جوه الـ Enum بتاعك
+    var roles = Enum.GetNames(typeof(UserRole)); 
+
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole<int> { Name = role });
+        }
+    }
+}
 app.Run();

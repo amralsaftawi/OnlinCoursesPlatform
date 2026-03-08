@@ -1,0 +1,62 @@
+@model OnlineCoursesPlatform.Models.User
+@{
+    ViewData["Title"] = "My Profile";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                <div class="p-5 text-white @(Model.Role == OnlineCoursesPlatform.Models.Enums.UserRole.Instructor ? "bg-warning" : "bg-primary") text-center">
+                    <div class="mb-3">
+                        @* التعديل هنا: عرض صورة البروفايل الحقيقية *@
+                        <img src="~/images/profiles/@(Model.ProfilePicture ?? "default-avatar.png")" 
+                             class="rounded-circle shadow-sm border border-3 border-white" 
+                             width="120" height="120" style="object-fit: cover;">
+                    </div>
+                    <h2 class="fw-bold">@Model.FirstName @Model.LastName</h2>
+                    <span class="badge bg-white text-dark rounded-pill px-3 py-2">
+                        <i class="fas @(Model.Role == OnlineCoursesPlatform.Models.Enums.UserRole.Instructor ? "fa-chalkboard-teacher" : "fa-user-graduate") me-2"></i>
+                        @Model.Role
+                    </span>
+                </div>
+
+                <div class="card-body p-5">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="text-muted small text-uppercase fw-bold">Email Address</label>
+                            <p class="fs-5 fw-semibold text-dark">@Model.Email</p>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <label class="text-muted small text-uppercase fw-bold">Member Since</label>
+                            <p class="fs-5 fw-semibold text-dark">March 2026</p> 
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    @* صف الأزرار المنظم - شلنا الزرار الزيادة اللي على اليمين *@
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
+                            <i class="fas fa-arrow-left me-2"></i> Back Home
+                        </a>
+                        
+                        <div class="d-flex gap-2">
+                            @if (Model.Role == OnlineCoursesPlatform.Models.Enums.UserRole.Instructor)
+                            {
+                                <a asp-controller="Instructor" asp-action="Index" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm">
+                                    <i class="fas fa-tasks me-2"></i> Manage My Courses
+                                </a>
+                            }
+                            
+                            @* زرار التعديل الأساسي *@
+                            <a asp-controller="Account" asp-action="EditProfile" class="btn btn-primary rounded-pill px-4 shadow-sm">
+                                <i class="fas fa-user-edit me-2"></i> Edit Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
