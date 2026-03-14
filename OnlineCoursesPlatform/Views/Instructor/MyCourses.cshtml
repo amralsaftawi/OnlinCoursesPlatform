@@ -47,21 +47,36 @@
                             @course.Status
                         </span>
 
-                        <div class="d-flex justify-content-between mt-3">
+                        <div class="d-flex justify-content-between mt-3 flex-wrap gap-2">
 
-                            <a asp-controller="Courses"
-                               asp-action="Edit"
-                               asp-route-id="@course.Id"
-                               class="btn btn-sm btn-outline-primary">
-                                Edit
+                            <a asp-controller="Lessons"
+                               asp-action="ManageContent"
+                               asp-route-courseId="@course.Id"
+                               class="btn btn-sm btn-success flex-grow-1">
+                                <i class="bi bi-journal-plus"></i> Manage Curriculum
                             </a>
 
-                            <a asp-controller="Courses"
-                               asp-action="Details"
-                               asp-route-id="@course.Id"
-                               class="btn btn-sm btn-outline-dark">
-                                View
-                            </a>
+                            <div class="w-100 d-flex justify-content-between mt-2">
+                                <a asp-controller="Courses"
+                                   asp-action="Edit"
+                                   asp-route-id="@course.Id"
+                                   class="btn btn-sm btn-outline-primary">
+                                    Edit Course Info
+                                </a>
+
+                                <a asp-controller="Courses"
+                                   asp-action="Details"
+                                   asp-route-id="@course.Id"
+                                   class="btn btn-sm btn-outline-dark">
+                                    View Page
+                                </a>
+
+                                <form asp-controller="Courses" asp-action="Delete" asp-route-id="@course.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to completely delete this course and all its contents? This cannot be undone.');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
 
                         </div>
 

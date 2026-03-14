@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using OnlinCoursePlatform.Abstrctions;
@@ -12,44 +12,29 @@ public class InstructorController(UserManager<User> userManager,IInstructorServi
     private readonly IInstructorService _instructorService=instructorService;
     private readonly UserManager<User> _userManager=userManager;
 
-
-public async Task<IActionResult> Index()
-{
-    var stats = new InstructorStatsDto
+    [Authorize(Roles = "Instructor,Admin")]
+    public async Task<IActionResult> Index()
     {
-        TotalCourses = 3,
-        TotalStudents = 120,
-        TotalRevenue = 4500
-    };
-
-    return View(stats);
-}
-
-  public async Task<IActionResult> MyCourses()
-{
-    // داتا وهمية للتيست فقط
-    var fakeCourses = new List<InstructorCourseDto>
-    {
-        new InstructorCourseDto { 
-            Id = 1, Title = "Mastering ASP.NET Core 9", 
-            CategoryName = "Development", Price = 49.99m, 
-            EnrollmentsCount = 150, Status = "Published",
-            ImageUrl = "https://placehold.co/600x400/5e72e4/white?text=ASP.NET+Core"
-        },
-        new InstructorCourseDto { 
-            Id = 2, Title = "Advanced SQL Server", 
-            CategoryName = "Database", Price = 35.00m, 
-            EnrollmentsCount = 85, Status = "Published",
-            ImageUrl = "https://placehold.co/600x400/2dce89/white?text=SQL+Server"
-        },
-        new InstructorCourseDto { 
-            Id = 3, Title = "Entity Framework Pro", 
-            CategoryName = "Development", Price = 29.00m, 
-            EnrollmentsCount = 0, Status = "Draft",
-            ImageUrl = "https://placehold.co/600x400/11cdef/white?text=EF+Core"
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return RedirectToAction("Login", "Account");
         }
-    };
 
-    return View(fakeCourses);
-}
+        var stats = await _instructorService.GetInstructorStatsAsync(user.Id);
+        return View(stats);
+    }
+
+    [Authorize(Roles = "Instructor,Admin")]
+    public async Task<IActionResult> MyCourses()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        var instructorCourses = await _instructorService.GetInstructorCoursesAsync(user.Id);
+        return View(instructorCourses);
+    }
 }

@@ -9,11 +9,11 @@ using OnlinCoursesPlatform.Data;
 
 #nullable disable
 
-namespace OnlineCoursesPlatform.Migrations.AppDb
+namespace OnlineCoursesPlatform.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260308024314_UpdateContextAndNamespaces")]
-    partial class UpdateContextAndNamespaces
+    [Migration("20260310005245_init")]
+    partial class init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -500,6 +500,9 @@ namespace OnlineCoursesPlatform.Migrations.AppDb
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("ProfilePicture")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Role")
                         .HasColumnType("int");

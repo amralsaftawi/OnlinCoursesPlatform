@@ -5,6 +5,12 @@ using OnlinCoursePlatform.Services;
 using OnlinCoursesPlatform.Data;
 using OnlineCoursesPlatform.Models;
 using OnlineCoursesPlatform.Models.Enums;
+using OnlineCoursesPlatform.Repositories;
+using OnlineCoursesPlatform.Repositories.Interface;
+using OnlineCoursesPlatform.Services;
+using OnlineCoursesPlatform.Services.Interfaces;
+using System.Reflection;
+//using OnlineCoursesPlatform.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,10 +19,20 @@ var builder = WebApplication.CreateBuilder(args);
 // استبدل DefaultConnection بالاسم الموجود في appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
+builder.Services.AddScoped<ICourseRepository, CourseRepository>();
+builder.Services.AddScoped<ICourseService, CourseService>();
+//for generic repository 
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
+//  AutoMapper Configuration
+//builder.Services.AddAutoMapper(typeof(Program).Assembly);
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 
 builder.Services.AddScoped<IInstructorService, InstructorService>();
+builder.Services.AddScoped<ILessonService, LessonService>();
 
 // إضافة خدمات الـ Identity وربطها بالـ DbContext والـ Role
 builder.Services.AddIdentity<User, IdentityRole<int>>(options => {
@@ -61,9 +77,9 @@ app.MapControllerRoute(
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
-    
+
     // هنجيب كل الأسماء اللي جوه الـ Enum بتاعك
-    var roles = Enum.GetNames(typeof(UserRole)); 
+    var roles = Enum.GetNames(typeof(UserRole));
 
     foreach (var role in roles)
     {

@@ -12,7 +12,7 @@ namespace OnlineCoursesPlatform.Models
         public string LastName { get; set; }
 
         public UserRole Role { get; set; }
-        
+
         public string? ProfilePicture { get; set; } = "default-avatar.png";
         
         public ICollection<Course> Courses { get; set; }
@@ -24,3 +24,4 @@ namespace OnlineCoursesPlatform.Models
         public ICollection<Review> Reviews { get; set; }
     }
 }
+
