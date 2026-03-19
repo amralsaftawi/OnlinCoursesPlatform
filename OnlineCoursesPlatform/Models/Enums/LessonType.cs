@@ -4,6 +4,7 @@
     {
         Video,
         Article,
-        Quiz
+        Quiz,
+        PDF
     }
 }

@@ -1,3 +1,6 @@
+using OnlineCoursesPlatform.Models;
+using OnlineCoursesPlatform.Models.Enums;
+
 namespace OnlineCoursesPlatform.ViewModels
 {
     public class LessonDetailsViewModel
@@ -7,5 +10,13 @@ namespace OnlineCoursesPlatform.ViewModels
         public int Duration { get; set; }
         public int OrderIndex { get; set; }
         public bool IsFree { get; set; }
+
+        public LessonType Type { get; set; } 
+        public string? ContentUrl { get; set; }
+
+        public static implicit operator LessonDetailsViewModel(Lesson v)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -1,0 +1,24 @@
+@model IEnumerable<dynamic>
+
+<div class="container mt-4">
+    <h2>My Enrolled Courses</h2>
+    <div class="row">
+        @foreach (var item in Model) {
+            <div class="col-md-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <img src="@item.ImageUrl" class="card-img-top" alt="Course Thumbnail">
+                    <div class="card-body">
+                        <h5 class="card-title">@item.Title</h5>
+                        <div class="progress mb-3" style="height: 10px;">
+                            <div class="progress-bar bg-success" style="width: @item.ProgressPercentage%"></div>
+                        </div>
+                        <small class="text-muted">@item.ProgressPercentage% Completed</small>
+                    </div>
+                    <div class="card-footer bg-white border-0">
+                        <a href="/Learning/Player/@item.CourseId" class="btn btn-primary w-100">Continue Learning</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

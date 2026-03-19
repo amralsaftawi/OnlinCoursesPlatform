@@ -21,6 +21,8 @@
         .footer { background: #ffffff; border-top: 1px solid #dee2e6; }
         /* تحسين شكل الـ Navbar Dropdown */
         .img-profile { object-fit: cover; border: 2px solid var(--primary-color); }
+        .nav-link { transition: color 0.3s ease; }
+        .nav-link:hover { color: var(--primary-color) !important; }
     </style>
 </head>
 <body>
@@ -35,15 +37,25 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <li class="nav-item"><a class="nav-link" asp-controller="Courses" asp-action="Index">Browse Courses</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" asp-controller="Courses" asp-action="Index">Browse Courses</a>
+                    </li>
+                    
+                    @* حتة ماي كورسز اللي ضفناها *@
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold text-white" asp-controller="Enrollment" asp-action="GetMyEnrolledCourses">
+                            <i class="fas fa-play-circle text-primary me-1"></i> My Courses
+                        </a>
+                    </li>
+
                     @if (User.IsInRole("Instructor")) {
                         <li class="nav-item"><a class="nav-link text-warning fw-bold" asp-controller="Instructor" asp-action="Index">Instructor Panel</a></li>
                     }
                 </ul>
+                
                 <ul class="navbar-nav ms-auto">
                     @if (User.Identity.IsAuthenticated)
                     {
-                        @* جلب اليوزر الحالي لعرض صورته واسمه *@
                         var currentUser = await userManager.GetUserAsync(User);
                         
                         <li class="nav-item dropdown">

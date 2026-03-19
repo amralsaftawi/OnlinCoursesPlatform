@@ -23,6 +23,7 @@ builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 //for generic repository 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<ILearningService, LearningService>();
 
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 //  AutoMapper Configuration

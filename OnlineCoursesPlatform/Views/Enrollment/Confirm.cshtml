@@ -1,0 +1,81 @@
+@model OnlineCoursesPlatform.Models.Course
+
+<div class="container mt-5">
+    <div class="card shadow-sm border-0" style="border-radius: 15px;">
+        <div class="card-body text-center p-5">
+            <div class="mb-4">
+                <i class="bi bi-shield-check display-1 text-success"></i>
+            </div>
+            <h2 class="fw-bold mb-3">Confirm Your Enrollment</h2>
+            <p class="text-muted fs-5">You are one step away from starting your journey in:</p>
+            <h3 class="text-primary mb-4">@Model.Title</h3>
+            
+            <div class="bg-light p-3 rounded mb-4">
+                <span class="text-muted">Total Price:</span>
+                <span class="fw-bold fs-4">@Model.Price @Model.CurrencyId</span>
+            </div>
+
+            <form id="enrollForm">
+                <input type="hidden" id="courseId" value="@Model.Id" />
+                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                    <button type="button" onclick="confirmEnroll()" class="btn btn-success btn-lg px-5 fw-bold shadow-sm">
+                        Confirm & Start Learning
+                    </button>
+                    <a href="/Courses/Details/@Model.Id" class="btn btn-outline-secondary btn-lg px-4">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    async function confirmEnroll() {
+        const id = document.getElementById('courseId').value;
+        const button = event.target;
+        
+        // تغيير شكل الزرار أثناء التحميل
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+
+        try {
+            const response = await fetch('/api/Enrollment/enroll', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ courseId: parseInt(id) })
+            });
+
+            if (response.ok) {
+                // رسالة النجاح الاحترافية
+                Swal.fire({
+                    title: 'Congratulations!',
+                    text: 'You have successfully enrolled in the course.',
+                    icon: 'success',
+                    showCancelButton: true,
+                    confirmButtonText: 'Start Learning Now', // يوديه المشغل
+                    cancelButtonText: 'Back to Course Details', // يرجعه لصفحة الكورس
+                    confirmButtonColor: '#a435f0', // نفس لون يوديمي اللي في الـ CSS عندك
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = '/Learning/Player/' + id;
+                    } else {
+                        window.location.href = '/Courses/Details/' + id + '?enrolled=true';
+                    }
+                });
+            } else {
+                const error = await response.json();
+                Swal.fire('Enrollment Failed', error.message || 'Something went wrong', 'error');
+                button.disabled = false;
+                button.innerHTML = 'Confirm & Start Learning';
+            }
+        } catch (err) {
+            Swal.fire('Error', 'Connection error. Please try again.', 'error');
+            button.disabled = false;
+            button.innerHTML = 'Confirm & Start Learning';
+        }
+    }
+</script>

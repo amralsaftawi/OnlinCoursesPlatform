@@ -39,44 +39,84 @@ namespace OnlineCoursesPlatform.Controllers
         }
 
         // GET: CoursesController
-        [HttpGet]
-        public async Task<ActionResult> Index(int page = 1)
+
+[HttpGet]
+public async Task<ActionResult> Index(string searchTerm, int? categoryId, List<int> selectedTags, int page = 1)
+{
+    // Initialize default values to prevent NullReference in View
+    ViewBag.Categories = new SelectList(Enumerable.Empty<Category>(), "Id", "Title");
+    ViewBag.Tags = Enumerable.Empty<Tag>();
+    ViewBag.SelectedTags = selectedTags ?? new List<int>();
+    ViewBag.CurrentSearch = searchTerm;
+
+    try
+    {
+        const int PageSize = 6;
+
+        // 1. Fetch Data
+        var allCourses = await _courseService.GetAllCoursesAsync() ?? Enumerable.Empty<Course>();
+        var coursesQuery = allCourses.AsQueryable();
+
+        // 2. Load Filter Data (Dropdowns & Checkboxes)
+        var categories = await _categoryRepo.GetAllAsync() ?? Enumerable.Empty<Category>();
+        var tags = await _tagRepo.GetAllAsync() ?? Enumerable.Empty<Tag>();
+
+        ViewBag.Categories = new SelectList(categories, "Id", "Title", categoryId);
+        ViewBag.Tags = tags;
+
+        // 3. Filtering Logic
+        if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            try
-            {
-                int pageSize = 10; // عدد الكورسات في الصفحة الواحدة
-
-                // بنكلم الـ Service وناخد منها الداتا والعدد
-                var result = await _courseService.GetPaginatedCoursesAsync(page, pageSize);
-
-                // حساب عدد الصفحات الكلي
-                var totalPages = (int)Math.Ceiling(result.TotalCount / (double)pageSize);
-
-                // بنبعت الأرقام دي للـ View عشان يرسم زراير (Next & Previous)
-                ViewBag.CurrentPage = page;
-                ViewBag.TotalPages = totalPages;
-
-                //  "It's preferred to convert result.Courses to CourseListViewModel"
-                return View(result.Courses);
-            }
-            catch (Exception ex)
-            {
-                ViewBag.Error = "An error occurred while retrieving courses: " + ex.Message;
-                return View(new List<Course>());
-            }
+            var term = searchTerm.Trim().ToLower();
+            coursesQuery = coursesQuery.Where(c => 
+                c.Title.ToLower().Contains(term) || 
+                (c.Description != null && c.Description.ToLower().Contains(term))
+            );
         }
 
-        // GET: CoursesController/Details/5
-        public async Task<ActionResult> Details(int id)
+        if (categoryId.HasValue && categoryId > 0)
         {
-            var viewModel = await _courseService.GetCourseDetailsProjectedAsync(id);
-            if (viewModel == null)
-                return NotFound();
-
-            return View(viewModel);
+            coursesQuery = coursesQuery.Where(c => c.CategoryId == categoryId.Value);
         }
 
-        // GET: CoursesController/Create
+        if (selectedTags != null && selectedTags.Any())
+        {
+            coursesQuery = coursesQuery.Where(c => 
+                c.CourseTags != null && c.CourseTags.Any(ct => selectedTags.Contains(ct.TagId))
+            );
+        }
+
+        // 4. Pagination
+        int totalCount = coursesQuery.Count();
+        int totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
+
+        var paginatedCourses = coursesQuery
+            .Skip((page - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
+
+        // 5. Mapping
+        var mappedCourses = _mapper.Map<IEnumerable<CourseListViewModel>>(paginatedCourses);
+
+        ViewBag.CurrentPage = page;
+        ViewBag.TotalPages = totalPages;
+        ViewBag.SelectedCategory = categoryId;
+
+        return View(mappedCourses);
+    }
+    catch (Exception ex)
+    {
+        // Log your error here
+        ViewBag.Error = "We encountered an issue loading the filters, but you can still browse courses.";
+        return View(new List<CourseListViewModel>());
+    }
+}
+
+
+
+
+       // GET: CoursesController
+     // GET: CoursesController/Create
         [HttpGet]
         [Authorize(Roles = "Instructor")]
         public async Task<ActionResult> Create()
@@ -271,5 +311,73 @@ namespace OnlineCoursesPlatform.Controllers
             Claim IDclaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
             return IDclaim.Value != null ? int.Parse(IDclaim.Value) : 0;
         }
+
+
+        
+       [HttpGet]
+public async Task<IActionResult> Details(int? id)
+{
+    if (id == null) return NotFound();
+
+    // 1. جلب الكورس مع كل العلاقات اللازمة
+    var course = await _context.Courses
+        .Include(c => c.Category)
+        .Include(c => c.Instructor)
+        .Include(c => c.Reviews)
+        .Include(c => c.Sections.OrderBy(s => s.OrderIndex))
+            .ThenInclude(s => s.Lessons.OrderBy(l => l.OrderIndex))
+        .FirstOrDefaultAsync(m => m.Id == id);
+
+    if (course == null) return NotFound();
+
+    // 2. التحقق من حالة الاشتراك لليوزر الحالي
+    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    bool isEnrolled = false;
+
+    if (!string.IsNullOrEmpty(userId))
+    {
+        // افترضنا إن عندك جدول اسمه Enrollments بيربط اليوزر بالكورس
+        isEnrolled = await _context.Enrollments
+            .AnyAsync(e => e.StudentId.ToString() == userId && e.CourseId == id);
+    }
+
+    // 3. بناء الـ ViewModel
+    var viewModel = new CourseDetailsViewModel
+    {
+        Id = course.Id,
+        Title = course.Title,
+        Description = course.Description,
+        Price = course.Price,
+        CurrencySymbol = "$", 
+        ImageUrl = course.ImageUrl,
+        CategoryName = course.Category?.Title ?? "General",
+        InstructorName = $"{course.Instructor?.FirstName} {course.Instructor?.LastName}",
+        InstructorProfilePicture = course.Instructor?.ProfilePicture,
+        Level = course.Level.ToString(),
+        AverageRating = course.Reviews.Any() ? course.Reviews.Average(r => r.Rating) : 0,
+        ReviewCount = course.Reviews.Count(),
+        SectionCount = course.Sections.Count,
+        TotalLessons = course.Sections.Sum(s => s.Lessons.Count),
+        TotalDuration = course.Sections.Sum(s => s.Lessons.Sum(l => l.Duration)),
+        
+        // القيمة الحقيقية للاشتراك
+        IsEnrolled = isEnrolled, 
+        
+        Sections = course.Sections.Select(s => new SectionDetailsViewModel {
+            Id = s.Id,
+            Title = s.Title,
+            Lessons = s.Lessons.Select(l => new LessonDetailsViewModel {
+                Id = l.Id,
+                Title = l.Title,
+                Duration = l.Duration,
+                // تأكد إن خاصية IsFree موجودة في الموديل بتاعك وViewModel
+                IsFree = l.IsFree, 
+                Type = l.Type
+            }).ToList()
+        }).ToList()
+    };
+
+    return View(viewModel);
+}
     }
 }

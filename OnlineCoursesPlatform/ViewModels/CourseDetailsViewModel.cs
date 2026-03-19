@@ -30,6 +30,10 @@ namespace OnlineCoursesPlatform.ViewModels
         public List<string> Tags { get; set; } = new List<string>();
         public List<SectionDetailsViewModel> Sections { get; set; } = new List<SectionDetailsViewModel>();
         public List<ReviewDetailsViewModel> Reviews { get; set; } = new List<ReviewDetailsViewModel>();
+
+        public bool IsEnrolled { get; set; }
+
+       
     }
 
 

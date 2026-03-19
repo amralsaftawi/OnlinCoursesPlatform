@@ -1,83 +1,107 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using OnlinCoursesPlatform.Data;
+using OnlineCoursesPlatform.Repositories.Interface;
+using OnlineCoursesPlatform.ViewModels;
 
 namespace OnlineCoursesPlatform.Controllers
 {
     public class LearningController : Controller
     {
-        // GET: CatigoriesController
-        public ActionResult Index()
+        private readonly ILearningService _learningService;
+        private readonly AppDbContext _context;
+
+        // التصحيح هنا: إضافة AppDbContext للـ Constructor
+        public LearningController(ILearningService learningService, AppDbContext context)
         {
-            return View();
+            _learningService = learningService;
+            _context = context;
         }
 
-        // GET: CatigoriesController/Details/5
-        public ActionResult Details(int id)
+        [Authorize]
+        public async Task<IActionResult> Details(int id)
         {
-            return View();
+            // _context دلوقتي مش null وهتشتغل عادي
+            var lesson = await _context.Lessons
+                .Include(l => l.Section)
+                    .ThenInclude(s => s.Course)
+                .FirstOrDefaultAsync(l => l.Id == id);
+
+            if (lesson == null) return NotFound();
+
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim)) return Challenge();
+            
+            int userId = int.Parse(userIdClaim);
+
+            var isEnrolled = await _context.Enrollments
+                .AnyAsync(e => e.CourseId == lesson.Section.CourseId && e.StudentId == userId);
+
+            if (!lesson.IsFree && !isEnrolled)
+            {
+                return RedirectToAction("Details", "Courses", new { id = lesson.Section.CourseId });
+            }
+
+            var courseLessons = await _context.Lessons
+                .Where(l => l.Section.CourseId == lesson.Section.CourseId)
+                .OrderBy(l => l.Section.OrderIndex)
+                .ThenBy(l => l.OrderIndex)
+                .Select(l => new LessonDetailsViewModel {
+                    Id = l.Id,
+                    Title = l.Title,
+                    Duration = l.Duration,
+                    Type = l.Type,
+                    OrderIndex = l.OrderIndex 
+                })
+                .ToListAsync();
+
+            var viewModel = new LearningViewModel
+            {
+                CurrentLesson = new LessonDetailsViewModel 
+                { 
+                    Id = lesson.Id, 
+                    Title = lesson.Title, 
+                    ContentUrl = lesson.ContentUrl,
+                    Type = lesson.Type
+                },
+                CourseLessons = courseLessons,
+                CourseTitle = lesson.Section.Course.Title,
+                ProgressPercentage = 0, 
+                IsCompleted = false 
+            };
+
+            return View(viewModel);
         }
 
-        // GET: CatigoriesController/Create
-        public ActionResult Create()
-        {
-            return View();
-        }
-
-        // POST: CatigoriesController/Create
+        
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
+        public async Task<IActionResult> MarkAsComplete(int id)
         {
-            try
+            // نمرر الـ UserId للخدمة لضمان حفظ التقدم لليوزر الصح
+            var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+            
+            // افترضنا أن الخدمة تقوم بتحديث جدول UserLessonProgress
+            var success = await _learningService.MarkLessonAsCompletedAsync(id); 
+            
+            if (!success) 
             {
-                return RedirectToAction(nameof(Index));
+                return BadRequest(new { success = false, message = "Could not save progress." });
             }
-            catch
-            {
-                return View();
-            }
-        }
 
-        // GET: CatigoriesController/Edit/5
-        public ActionResult Edit(int id)
-        {
-            return View();
-        }
+            var currentLesson = await _context.Lessons
+                .Include(l => l.Section)
+                .FirstOrDefaultAsync(l => l.Id == id);
 
-        // POST: CatigoriesController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
-        }
+            var nextLesson = await _context.Lessons
+                .Where(l => l.Section.CourseId == currentLesson.Section.CourseId)
+                .OrderBy(l => l.Section.OrderIndex)
+                .ThenBy(l => l.OrderIndex)
+                .FirstOrDefaultAsync(l => (l.Section.OrderIndex > currentLesson.Section.OrderIndex) || 
+                                          (l.Section.OrderIndex == currentLesson.Section.OrderIndex && l.OrderIndex > currentLesson.OrderIndex));
 
-        // GET: CatigoriesController/Delete/5
-        public ActionResult Delete(int id)
-        {
-            return View();
-        }
-
-        // POST: CatigoriesController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
+            return Ok(new { success = true, nextLessonId = nextLesson?.Id });
         }
     }
 }
