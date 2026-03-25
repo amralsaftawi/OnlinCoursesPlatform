@@ -13,6 +13,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     }
 
     public DbSet<Course> Courses => Set<Course>();
+    public DbSet<AdminProfile> AdminProfiles { get; set; }
     public DbSet<Section> Sections => Set<Section>();
     public DbSet<Lesson> Lessons => Set<Lesson>();
     public DbSet<Category> Categories => Set<Category>();

@@ -17,5 +17,6 @@ namespace OnlineCoursesPlatform.Services.Interfaces
         Task<Course> UpdateCourseAsync(Course course);
         Task<bool> DeleteCourseAsync(int id);
         Task<bool> SaveChangesAsync();
+
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using OnlinCoursePlatform.ViewModels;
+using OnlineCoursesPlatform.Dtos;
 using OnlineCoursesPlatform.Models;
 using OnlineCoursesPlatform.Models.Enums;
 
@@ -11,50 +12,46 @@ public class AccountController(UserManager<User> userManager, SignInManager<User
 
  
 
-[HttpPost]
-public async Task<IActionResult> Register(RegisterViewModel model)
-{
-    if (!ModelState.IsValid) return View(model);
-
-    // 1. فحص الإيميل
-    var existingUser = await userManager.FindByEmailAsync(model.Email);
-    if (existingUser != null)
+    [HttpPost]
+    public async Task<IActionResult> Register(RegisterViewModel model)
     {
-        ModelState.AddModelError("Email", "This email is already registered.");
+        if (!ModelState.IsValid) return View(model);
+
+        var existingUser = await userManager.FindByEmailAsync(model.Email);
+        if (existingUser != null)
+        {
+            ModelState.AddModelError("Email", "This email is already registered.");
+            return View(model);
+        }
+
+        var user = new User
+        {
+            UserName = model.Email,
+            Email = model.Email,
+            FirstName = model.FirstName,
+            LastName = model.LastName
+        };
+
+        var result = await userManager.CreateAsync(user, model.Password);
+
+        if (result.Succeeded)
+        {
+            var role = model.IsInstructor ? "Instructor" : "Student";
+
+            var roleResult = await userManager.AddToRoleAsync(user, role);
+
+            if (roleResult.Succeeded)
+            {
+                await signInManager.SignInAsync(user, false);
+                return RedirectToAction("Index", "Home");
+            }
+        }
+
+        foreach (var error in result.Errors)
+            ModelState.AddModelError("", error.Description);
+
         return View(model);
     }
-
-    // 2. إنشاء اليوزر
-    var user = new User 
-    { 
-        UserName = model.Email, 
-        Email = model.Email, 
-        FirstName = model.FirstName, 
-        LastName = model.LastName,
-        Role = model.IsInstructor ? UserRole.Instructor : UserRole.Student 
-    };
-
-    // 3. الحفظ في الداتابيز
-    var result = await userManager.CreateAsync(user, model.Password);
-
-    if (result.Succeeded)
-    {
-        // 4. الحل الأكيد: بنادي على AddToRoleAsync باسم الرول 
-        // الـ user object هنا خلاص بقى فيه الـ ID بعد الـ CreateAsync الناجحة
-        var roleResult = await userManager.AddToRoleAsync(user, user.Role.ToString());
-
-        if (roleResult.Succeeded)
-        {
-            await signInManager.SignInAsync(user, isPersistent: false);
-            return RedirectToAction("Index", "Home");
-        }
-    }
-
-    foreach (var error in result.Errors) 
-        ModelState.AddModelError("", error.Description);
-
-    return View(model);
-}
 
     public IActionResult Login() => View();
 
@@ -68,11 +65,21 @@ public async Task<IActionResult> Login(LoginViewModel model)
         
         if (user != null)
         {
-            // 2. بنعمل تسجيل دخول باستخدام كائن اليوزر نفسه
             var result = await signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, false);
-            
-            if (result.Succeeded) 
+
+            if (result.Succeeded)
+            {
+                await signInManager.SignInAsync(user, model.RememberMe);
+
+                var roles = await userManager.GetRolesAsync(user);
+
+                if (roles.Contains("Admin"))
+                {
+                    return RedirectToAction("Index", "Admin");
+                }
+
                 return RedirectToAction("Index", "Home");
+            }
         }
 
         ModelState.AddModelError("", "The email or password wrong.");
@@ -86,17 +93,30 @@ public async Task<IActionResult> Login(LoginViewModel model)
         return RedirectToAction("Index", "Home");
     }
 
-    [Authorize] // لازم يكون مسجل دخول عشان يشوف البروفايل
-public async Task<IActionResult> Profile()
-{
-    var user = await userManager.GetUserAsync(User);
-    if (user == null) return NotFound();
+    [Authorize]
+    public async Task<IActionResult> Profile()
+    {
+        var user = await userManager.GetUserAsync(User);
 
-    return View(user);
-}
+        if (user == null)
+            return NotFound();
+
+        var roles = await userManager.GetRolesAsync(user);
+
+        var dto = new ProfileDto
+        {
+            Id = user.Id,
+            FullName = $"{user.FirstName} {user.LastName}",
+            Email = user.Email,
+            ProfilePicture = user.ProfilePicture,
+            Roles = roles
+        };
+
+        return View(dto);
+    }
 
 
-[Authorize]
+    [Authorize]
 public async Task<IActionResult> EditProfile()
 {
     var user = await userManager.GetUserAsync(User);

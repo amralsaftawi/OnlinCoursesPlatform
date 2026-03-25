@@ -37,6 +37,28 @@
                     <span class="text-warning fw-bold">@Model.AverageRating.ToString("0.0") <i class="bi bi-star-fill"></i></span>
                     <span class="text-white-50 small">(@Model.ReviewCount ratings)</span>
                 </div>
+                
+                <h1 class="hero-title">@Model.Title</h1>
+                <p class="hero-subtitle">@Model.Description</p>
+                
+                <div class="hero-meta d-flex align-items-center flex-wrap">
+                    @* Rating Component *@
+                    <span class="text-warning fw-bold me-2" style="font-size: 1.1rem;">@Model.AverageRating.ToString("0.0")</span>
+                    <div class="rating-stars me-2" style="font-size: 0.9rem;">
+                        @for(int i = 0; i < Math.Floor(Model.AverageRating); i++) { <i class="bi bi-star-fill"></i> }
+                        @if(Model.AverageRating % 1 != 0) { <i class="bi bi-star-half"></i> }
+                        @for(int i = 0; i < (5 - Math.Ceiling(Model.AverageRating)); i++) { <i class="bi bi-star"></i> }
+                    </div>
+                    <a href="#reviews" class="text-info text-decoration-underline me-3">(@Model.ReviewCount ratings)</a>
+                    
+                    <span class="me-3"><i class="bi bi-person-fill"></i> @(Model.ReviewCount * 142) students</span>
+                </div>
+                
+                <div class="hero-meta mt-2">
+                    <span class="me-4">Created by <a href="#instructor" class="text-info text-decoration-underline">@Model.InstructorName</a></span>
+                    <span class="me-4"><i class="bi bi-patch-exclamation-fill me-1"></i>Last updated 11/2025</span>
+                    <span class="me-4"><i class="bi bi-globe me-1"></i>@Model.Language</span>
+                </div>
             </div>
         </div>
     </div>
@@ -44,24 +66,28 @@
 
 <div class="container pb-5">
     <div class="row">
+        <!-- Main Content Area -->
         <div class="col-lg-8 pe-lg-5">
             <h4 class="fw-bold mb-4">Course Content</h4>
             <div class="d-flex justify-content-between mb-2 text-muted small">
                 <span>@Model.SectionCount sections • @Model.TotalLessons lectures • @Model.TotalDuration min total length</span>
-            </div>
+                </div>
 
             <div class="accordion border rounded overflow-hidden" id="syllabusAccordion">
                 @if (Model.Sections != null)
                 {
                     @foreach (var secItem in Model.Sections)
-                    {
-                        <div class="accordion-item border-0 border-bottom">
+                        {
+                            string headingId = $"heading{courseSection.Id}";
+                            string collapseId = $"collapse{courseSection.Id}";
+
+                            <div class="accordion-item border-0 border-bottom">
                             <h2 class="accordion-header">
                                 <button class="accordion-button collapsed fw-bold py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@secItem.Id">
                                     <span class="flex-grow-1">@secItem.Title</span>
                                     <span class="text-muted small fw-normal me-3">@(secItem.Lessons?.Count ?? 0) lectures</span>
-                                </button>
-                            </h2>
+                                    </button>
+                                </h2>
                             <div id="collapse-@secItem.Id" class="accordion-collapse collapse" data-bs-parent="#syllabusAccordion">
                                 <div class="accordion-body p-0">
                                     @if (secItem.Lessons != null)
@@ -80,7 +106,7 @@
                                                         </a>
                                                     }
                                                     else
-                                                    {
+                                        {
                                                         <i class="bi bi-lock-fill me-3 lock-icon"></i>
                                                         <span class="text-muted">@lesItem.Title</span>
                                                     }
@@ -94,11 +120,17 @@
                                                 </div>
                                             </div>
                                         }
-                                    }
+
+                                        @if(!courseSection.Lessons.Any())
+                                        {
+                                            <div class="p-3 text-muted small text-center">No lessons in this section yet.</div>
+                                        }
+
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    }
+                        }
+                    </div>
                 }
             </div>
 
@@ -110,9 +142,9 @@
                         <h5 class="fw-bold text-primary mb-1">@Model.InstructorName</h5>
                         <p class="text-muted mb-0">Senior Backend Developer & Expert Mentor</p>
                     </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
         <div class="col-lg-4">
             <div class="floating-card shadow">
@@ -139,26 +171,61 @@
                         <div class="alert alert-dark text-center py-2 mb-3 fw-bold" style="background-color: var(--udemy-dark); color: white; border: none;">
                             <i class="bi bi-check-circle-fill me-2 text-success"></i> You are Enrolled
                         </div>
-                        
-                        {
+
+                    @foreach (var review in Model.Reviews)
+                    {
                             var firstLessonId = Model.Sections?.FirstOrDefault()?.Lessons?.FirstOrDefault()?.Id;
 
                             if (firstLessonId != null)
-                            {
+                                    {
                                 <a asp-controller="Learning" asp-action="Details" asp-route-id="@firstLessonId" 
                                    class="btn btn-outline-dark btn-lg w-100 py-3 fw-bold mb-3">
                                     Go to Course
                                 </a>
-                            }
-                            else
-                            {
+                                    }
+                                    else
+                                    {
                                 <button class="btn btn-outline-secondary btn-lg w-100 py-3 fw-bold mb-3" disabled>
                                     No Lessons Available
                                 </button>
                             }
-                        }
+                                    }
+                                    
+                                    <div>
+                                        <div class="fw-bold">@review.StudentName</div>
+                                        <div class="d-flex align-items-center">
+                                            <div class="rating-stars me-2" style="font-size: 0.8rem;">
+                                                @for(int i = 0; i < review.Rating; i++) { <i class="bi bi-star-fill"></i> }
+                                                @for(int i = 0; i < (5 - review.Rating); i++) { <i class="bi bi-star"></i> }
+                                            </div>
+                                            <span class="text-muted small">@review.CreatedAt.ToString("MMM yyyy")</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-dark m-0" style="font-size: 0.95rem;">"@review.Comment"</p>
+                            </div>
+                        </div>
                     }
+                </div>
+            </div>
 
+        </div>
+
+        <!-- Right Sidebar (Floating Enrollment Card) -->
+        <div class="col-lg-4 d-none d-lg-block">
+            <div class="enroll-card">
+                <!-- Course Image on Top -->
+                <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "/images/default-course.jpg" : Model.ImageUrl)" class="enroll-card-img" alt="@Model.Title">
+                
+                <div class="p-4">
+                    <div class="enroll-price-huge">@Model.CurrencySymbol@Model.Price</div>
+                    
+                    <button class="btn btn-danger w-100 py-3 fw-bold mb-2 text-white" style="background-color: #a435f0; border: none; font-size: 1.1rem;">
+                        Enroll Now
+                    </button>
+                    
+                    <div class="text-center text-muted small mb-4">30-Day Money-Back Guarantee</div>
+                    
                     <h6 class="fw-bold small mb-3">This course includes:</h6>
                     <ul class="list-unstyled small lh-lg mb-0">
                         <li><i class="bi bi-play-btn me-2"></i> @Model.TotalDuration minutes video content</li>
@@ -166,8 +233,16 @@
                         <li><i class="bi bi-phone me-2"></i> Access on mobile and TV</li>
                         <li><i class="bi bi-trophy me-2"></i> Certificate of completion</li>
                     </ul>
+
+                    <div class="d-flex justify-content-between mt-4 pb-2 border-bottom">
+                        <a href="#" class="text-dark fw-bold text-decoration-underline" style="font-size: 0.9rem;">Share</a>
+                        <a href="#" class="text-dark fw-bold text-decoration-underline" style="font-size: 0.9rem;">Gift this course</a>
+                        <a href="#" class="text-dark fw-bold text-decoration-underline" style="font-size: 0.9rem;">Apply Coupon</a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">

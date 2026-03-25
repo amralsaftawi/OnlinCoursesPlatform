@@ -1,0 +1,64 @@
+﻿@using OnlineCoursesPlatform.Dtos
+@model IEnumerable<AdminCourseDto>
+
+<h2 class="mb-4">Courses Review</h2>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th style="width:220px;">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var course in Model)
+        {
+            <tr>
+                <td>@course.Title</td>
+
+                <td>
+                    @if (course.Status == "Pending")
+                    {
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    }
+                    else if (course.Status == "Approved")
+                    {
+                        <span class="badge bg-success">Approved</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">Rejected</span>
+                    }
+                </td>
+
+                <td>
+                    @if (course.Status == "Pending")
+                    {
+                        <!-- Approve -->
+                        <form asp-action="Approve" method="post" style="display:inline;">
+                            <input type="hidden" name="id" value="@course.Id" />
+                            <button type="submit" class="btn btn-success btn-sm">
+                                Approve
+                            </button>
+                        </form>
+
+                        <!-- Reject -->
+                        <form asp-action="Reject" method="post" style="display:inline;">
+                            <input type="hidden" name="id" value="@course.Id" />
+                            <button type="submit"
+                                    class="btn btn-danger btn-sm"
+                                    onclick="return confirm('Are you sure you want to reject this course?');">
+                                Reject
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <span class="text-muted">No actions</span>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

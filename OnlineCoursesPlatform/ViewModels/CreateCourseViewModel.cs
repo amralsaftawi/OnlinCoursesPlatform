@@ -63,6 +63,6 @@ namespace OnlineCoursesPlatform.ViewModels
         public int TotalDuration { get; set; }
 
         [Display(Name = "Status")]
-        public CourseStatus Status { get; set; } = CourseStatus.Draft;
+        public CourseStatus Status { get; set; } = CourseStatus.Pending;
     }
 }

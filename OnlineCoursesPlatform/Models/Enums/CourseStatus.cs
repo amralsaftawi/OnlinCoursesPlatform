@@ -2,8 +2,8 @@
 {
     public enum CourseStatus
     {
-        Draft,
-        Published,
-        Archived
+        Pending,
+        Approved,
+        Rejected
     }
 }

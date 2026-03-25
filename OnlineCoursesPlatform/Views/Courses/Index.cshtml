@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "All Courses";
+
     int currentPage = ViewBag.CurrentPage ?? 1;
     int totalPages = ViewBag.TotalPages ?? 1;
 }
@@ -29,11 +30,15 @@
             <h1 class="fw-bold mb-2">Explore Our Best Courses 🎓</h1>
             <p class="lead mb-0 text-white-50">Advance your career and learn from top experts.</p>
         </div>
+        
+        @* Show Create Button only to Instructors *@
         @if (User.IsInRole("Instructor"))
         {
-            <a asp-action="Create" class="btn btn-light btn-lg fw-bold shadow-sm rounded-pill px-4">
+            <div class="mt-4 mt-md-0">
+                <a asp-action="Create" class="btn btn-light btn-lg fw-bold shadow-sm rounded-pill px-4">
                 <i class="bi bi-plus-circle-fill me-2 text-primary"></i> Create Course
-            </a>
+                </a>
+            </div>
         }
     </div>
 
@@ -60,13 +65,13 @@
                     </button>
                     <div class="dropdown-menu p-3 shadow border-0 rounded-3" style="min-width: 250px;">
                         @foreach (var tag in (IEnumerable<OnlineCoursesPlatform.Models.Tag>)ViewBag.Tags)
-                        {
+    {
                             <div class="form-check mb-1">
                                 <input class="form-check-input" type="checkbox" name="selectedTags" value="@tag.Id" 
                                        id="tag_@tag.Id" @(ViewBag.SelectedTags.Contains(tag.Id) ? "checked" : "")>
                                 <label class="form-check-label small" for="tag_@tag.Id">@tag.Name</label>
-                            </div>
-                        }
+        </div>
+    }
                     </div>
                 </div>
             </div>
@@ -74,14 +79,15 @@
                 <button type="submit" class="btn btn-primary rounded-pill w-100 fw-bold shadow-sm">Apply Filters</button>
             </div>
         </form>
-    </div>
+        </div>
+    }
 
     @* --- Courses Grid --- *@
     <div class="row g-4">
         @if (!Model.Any())
         {
             <div class="col-12 text-center py-5">
-                <h3 class="fw-bold text-secondary mb-3">No courses found 😔</h3>
+                    <h3 class="fw-bold text-secondary mb-3">No courses found 😔</h3>
                 <a asp-action="Index" class="btn btn-link text-primary">Reset all filters</a>
             </div>
         }
@@ -95,6 +101,7 @@
                             <img src="@(string.IsNullOrEmpty(course.ImageUrl) ? "/images/default-course.jpg" : course.ImageUrl)" class="card-img-top w-100" style="height: 220px; object-fit: cover;">
                             <span class="badge bg-dark position-absolute top-0 start-0 m-3 px-3 py-2 rounded-pill">@course.CategoryName</span>
                         </div>
+
                         <div class="card-body d-flex flex-column">
                             <h5 class="card-title fw-bold text-dark line-clamp-2">@course.Title</h5>
                             <p class="card-text text-muted small line-clamp-2 mb-4 flex-grow-1">@course.Description</p>
@@ -121,6 +128,13 @@
     {
         <nav class="mt-5 d-flex justify-content-center">
             <ul class="pagination shadow-sm rounded-pill bg-white p-2">
+
+                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(currentPage - 1)">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+
                 @for (int i = 1; i <= totalPages; i++)
                 {
                     <li class="page-item @(i == currentPage ? "active" : "")">
@@ -134,6 +148,13 @@
                         <a class="page-link" asp-action="Index" asp-all-route-data="routeData">@i</a>
                     </li>
                 }
+
+                <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(currentPage + 1)">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+
             </ul>
         </nav>
     }

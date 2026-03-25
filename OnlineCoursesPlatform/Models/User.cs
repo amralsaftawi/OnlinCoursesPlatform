@@ -11,10 +11,9 @@ namespace OnlineCoursesPlatform.Models
 
         public string LastName { get; set; }
 
-        public UserRole Role { get; set; }
-
         public string? ProfilePicture { get; set; } = "default-avatar.png";
-        
+        public AdminProfile AdminProfile { get; set; }
+
         public ICollection<Course> Courses { get; set; }
 
         public ICollection<Enrollment> Enrollments { get; set; }

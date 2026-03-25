@@ -155,6 +155,28 @@ namespace OnlineCoursesPlatform.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("OnlineCoursesPlatform.Models.AdminProfile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ApplicationUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId")
+                        .IsUnique();
+
+                    b.ToTable("AdminProfiles");
+                });
+
             modelBuilder.Entity("OnlineCoursesPlatform.Models.Category", b =>
                 {
                     b.Property<int>("Id")
@@ -501,9 +523,6 @@ namespace OnlineCoursesPlatform.Migrations
                     b.Property<string>("ProfilePicture")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("Role")
-                        .HasColumnType("int");
-
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
@@ -605,6 +624,17 @@ namespace OnlineCoursesPlatform.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("OnlineCoursesPlatform.Models.AdminProfile", b =>
+                {
+                    b.HasOne("OnlineCoursesPlatform.Models.User", "ApplicationUser")
+                        .WithOne("AdminProfile")
+                        .HasForeignKey("OnlineCoursesPlatform.Models.AdminProfile", "ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
                 });
 
             modelBuilder.Entity("OnlineCoursesPlatform.Models.Course", b =>
@@ -774,6 +804,9 @@ namespace OnlineCoursesPlatform.Migrations
 
             modelBuilder.Entity("OnlineCoursesPlatform.Models.User", b =>
                 {
+                    b.Navigation("AdminProfile")
+                        .IsRequired();
+
                     b.Navigation("Courses");
 
                     b.Navigation("Enrollments");
