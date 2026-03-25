@@ -92,6 +92,7 @@
                         <div>
                             <div class="small text-muted text-uppercase">Your Progress</div>
                             <div class="fw-bold fs-4 text-primary">@Model.ProgressPercentage%</div>
+                            <div class="small text-muted mt-1">@Model.CompletedLessons of @Model.TotalLessons lessons completed</div>
                         </div>
                         <a asp-controller="Enrollment" asp-action="GetMyEnrolledCourses" class="btn btn-outline-dark rounded-pill">Open My Learning</a>
                     </div>
@@ -279,7 +280,7 @@
                         @if (Model.FirstLessonId != null)
                         {
                             <a asp-controller="Learning" asp-action="Details" asp-route-id="@Model.FirstLessonId" class="btn btn-outline-dark btn-lg w-100 py-3 fw-bold mb-3">
-                                Go to Course
+                                @(Model.ProgressPercentage > 0 ? "Resume Course" : "Start Course")
                             </a>
                         }
                         else

@@ -29,12 +29,24 @@
                             <small class="text-muted">Progress</small>
                             <small class="fw-bold text-primary">@item.ProgressPercentage%</small>
                         </div>
+                        <div class="small text-muted mb-2">
+                            @if (item.TotalLessons > 0)
+                            {
+                                <span>@item.CompletedLessons of @item.TotalLessons lessons completed</span>
+                            }
+                            else
+                            {
+                                <span>Curriculum is being prepared.</span>
+                            }
+                        </div>
                         <div class="progress mb-4" style="height: 10px;">
                             <div class="progress-bar" role="progressbar" style="width: @item.ProgressPercentage%" aria-valuenow="@item.ProgressPercentage" aria-valuemin="0" aria-valuemax="100"></div>
                         </div>
-                        @if (item.FirstLessonId != null)
+                        @if (item.ContinueLessonId != null)
                         {
-                            <a asp-controller="Learning" asp-action="Details" asp-route-id="@item.FirstLessonId" class="btn btn-app-primary w-100 mb-2">Continue Learning</a>
+                            <a asp-controller="Learning" asp-action="Details" asp-route-id="@item.ContinueLessonId" class="btn btn-app-primary w-100 mb-2">
+                                @(item.IsCompleted ? "Review Course" : item.ProgressPercentage > 0 ? "Resume Learning" : "Start Course")
+                            </a>
                         }
                         else
                         {

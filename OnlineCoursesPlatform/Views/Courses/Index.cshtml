@@ -43,6 +43,7 @@
     int totalPages = ViewBag.TotalPages ?? 1;
     int totalCount = ViewBag.TotalCount ?? 0;
     bool hasFilters = ViewBag.HasFilters ?? false;
+    int selectedCategory = ViewBag.SelectedCategory is int categoryValue ? categoryValue : 0;
     var selectedTags = ViewBag.SelectedTags as List<int> ?? new List<int>();
     string? currentSearch = ViewBag.CurrentSearch as string;
 }
@@ -174,7 +175,7 @@
                         {
                             <span class="soft-badge">Search: @currentSearch</span>
                         }
-                        @if ((ViewBag.SelectedCategory as int?) > 0)
+                        @if (selectedCategory > 0)
                         {
                             <span class="soft-badge">Category Filter On</span>
                         }

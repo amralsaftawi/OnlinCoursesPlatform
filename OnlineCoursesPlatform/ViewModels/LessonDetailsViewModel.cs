@@ -9,6 +9,8 @@ namespace OnlineCoursesPlatform.ViewModels
         public string? Title { get; set; }
         public int Duration { get; set; }
         public int OrderIndex { get; set; }
+        public int SectionOrderIndex { get; set; }
+        public string? SectionTitle { get; set; }
         public bool IsFree { get; set; }
 
         public LessonType Type { get; set; } 

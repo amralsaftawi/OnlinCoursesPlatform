@@ -1,10 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using OnlinCoursesPlatform.Data;
 using OnlineCoursesPlatform.Repositories.Interface;
-using OnlineCoursesPlatform.ViewModels;
 
 namespace OnlineCoursesPlatform.Controllers
 {
@@ -12,22 +9,14 @@ namespace OnlineCoursesPlatform.Controllers
     public class LearningController : Controller
     {
         private readonly ILearningService _learningService;
-        private readonly AppDbContext _context;
 
-        public LearningController(ILearningService learningService, AppDbContext context)
+        public LearningController(ILearningService learningService)
         {
             _learningService = learningService;
-            _context = context;
         }
 
         public async Task<IActionResult> Details(int id)
         {
-            var lesson = await _learningService.GetLessonDetailsAsync(id);
-            if (lesson == null)
-            {
-                return NotFound();
-            }
-
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdClaim))
             {
@@ -35,53 +24,18 @@ namespace OnlineCoursesPlatform.Controllers
             }
 
             var userId = int.Parse(userIdClaim);
-            var isEnrolled = await _context.Enrollments.AnyAsync(e => e.CourseId == lesson.Section.CourseId && e.StudentId == userId);
-            var isOwner = lesson.Section.Course.InstructorId == userId;
-            var isAdmin = User.IsInRole("Admin");
-
-            if (!lesson.IsFree && !isEnrolled && !isOwner && !isAdmin)
+            var lessonExperience = await _learningService.GetLessonExperienceAsync(id, userId, User.IsInRole("Admin"));
+            if (lessonExperience.NotFound)
             {
-                return RedirectToAction("Details", "Courses", new { id = lesson.Section.CourseId });
+                return NotFound();
             }
 
-            var courseLessons = (await _learningService.GetCourseLessonsAsync(lesson.Section.CourseId))
-                .Select(l => new LessonDetailsViewModel
-                {
-                    Id = l.Id,
-                    Title = l.Title,
-                    Duration = l.Duration,
-                    Type = l.Type,
-                    OrderIndex = l.OrderIndex,
-                    IsFree = l.IsFree
-                })
-                .ToList();
-
-            var progressPercentage = isEnrolled
-                ? await _learningService.GetProgressPercentageAsync(lesson.Section.CourseId, userId)
-                : 0;
-            var isCompleted = isEnrolled && await _learningService.IsLessonCompletedAsync(lesson.Id, userId);
-
-            var viewModel = new LearningViewModel
+            if (lessonExperience.RedirectCourseId.HasValue)
             {
-                CourseId = lesson.Section.CourseId,
-                CurrentLesson = new LessonDetailsViewModel
-                {
-                    Id = lesson.Id,
-                    Title = lesson.Title,
-                    ContentUrl = lesson.ContentUrl,
-                    Type = lesson.Type,
-                    OrderIndex = lesson.OrderIndex,
-                    IsFree = lesson.IsFree,
-                    Duration = lesson.Duration
-                },
-                CourseLessons = courseLessons,
-                CourseTitle = lesson.Section.Course.Title,
-                ProgressPercentage = progressPercentage,
-                IsCompleted = isCompleted,
-                IsOwnerPreview = isOwner && !isEnrolled
-            };
+                return RedirectToAction("Details", "Courses", new { id = lessonExperience.RedirectCourseId.Value });
+            }
 
-            return View(viewModel);
+            return View(lessonExperience.ViewModel);
         }
 
         [HttpPost]
@@ -94,42 +48,17 @@ namespace OnlineCoursesPlatform.Controllers
             }
 
             var userId = int.Parse(userIdClaim);
-            var lesson = await _context.Lessons
-                .Include(l => l.Section)
-                .ThenInclude(s => s.Course)
-                .FirstOrDefaultAsync(l => l.Id == id);
-
-            if (lesson == null)
+            var result = await _learningService.MarkLessonAsCompletedAsync(id, userId, User.IsInRole("Admin"));
+            if (!result.Succeeded)
             {
-                return NotFound(new { success = false, message = "Lesson not found." });
+                return BadRequest(new { success = false, message = result.Errors.FirstOrDefault() ?? "Could not save progress." });
             }
-
-            if (lesson.Section.Course.InstructorId == userId)
-            {
-                return BadRequest(new { success = false, message = "Course owners can preview lessons, but progress is tracked only for enrolled students." });
-            }
-
-            var success = await _learningService.MarkLessonAsCompletedAsync(id, userId);
-            if (!success)
-            {
-                return BadRequest(new { success = false, message = "Could not save progress." });
-            }
-
-            var nextLesson = await _context.Lessons
-                .Where(l => l.Section.CourseId == lesson.Section.CourseId)
-                .OrderBy(l => l.Section.OrderIndex)
-                .ThenBy(l => l.OrderIndex)
-                .FirstOrDefaultAsync(l =>
-                    l.Section.OrderIndex > lesson.Section.OrderIndex ||
-                    (l.Section.OrderIndex == lesson.Section.OrderIndex && l.OrderIndex > lesson.OrderIndex));
-
-            var progressPercentage = await _learningService.GetProgressPercentageAsync(lesson.Section.CourseId, userId);
 
             return Ok(new
             {
                 success = true,
-                nextLessonId = nextLesson?.Id,
-                progressPercentage
+                nextLessonId = result.NextLessonId,
+                progressPercentage = result.ProgressPercentage
             });
         }
     }

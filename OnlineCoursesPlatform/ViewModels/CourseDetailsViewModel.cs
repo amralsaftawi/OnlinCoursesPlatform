@@ -36,6 +36,7 @@ namespace OnlineCoursesPlatform.ViewModels
         public bool IsEnrolled { get; set; }
         public bool IsOwner { get; set; }
         public int ProgressPercentage { get; set; }
+        public int CompletedLessons { get; set; }
         public bool CanReview { get; set; }
         public bool HasReviewed { get; set; }
 

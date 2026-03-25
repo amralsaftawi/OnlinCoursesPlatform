@@ -1,4 +1,6 @@
+using OnlineCoursesPlatform.Dtos;
 using OnlineCoursesPlatform.Models;
+using OnlineCoursesPlatform.ViewModels;
 
 namespace OnlineCoursesPlatform.Repositories.Interface
 {
@@ -6,7 +8,10 @@ namespace OnlineCoursesPlatform.Repositories.Interface
     {
         Task<Lesson?> GetLessonDetailsAsync(int lessonId);
         Task<IEnumerable<Lesson>> GetCourseLessonsAsync(int courseId);
-        Task<bool> MarkLessonAsCompletedAsync(int lessonId, int studentId);
+        Task<LearningLessonExperienceDto> GetLessonExperienceAsync(int lessonId, int userId, bool isAdmin);
+        Task<LessonCompletionResultDto> MarkLessonAsCompletedAsync(int lessonId, int studentId, bool isAdmin);
+        Task<IReadOnlyList<EnrolledCourseViewModel>> GetStudentLearningDashboardAsync(int studentId);
+        Task<CourseProgressDto> GetCourseProgressAsync(int courseId, int studentId);
         Task<int> GetProgressPercentageAsync(int courseId, int studentId);
         Task<bool> IsLessonCompletedAsync(int lessonId, int studentId);
     }

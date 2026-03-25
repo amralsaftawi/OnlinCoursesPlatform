@@ -116,6 +116,16 @@ namespace OnlineCoursesPlatform.Services
                 .Select(l => l.Section.CourseId)
                 .FirstOrDefaultAsync();
 
+            var lessonProgresses = await _context.UserProgresses
+                .Where(progress => progress.LessonId == lessonId)
+                .ToListAsync();
+
+            if (lessonProgresses.Count != 0)
+            {
+                _context.UserProgresses.RemoveRange(lessonProgresses);
+                await _context.SaveChangesAsync();
+            }
+
             var result = await _lessonRepository.DeleteAsync(lessonId);
             if (result)
             {

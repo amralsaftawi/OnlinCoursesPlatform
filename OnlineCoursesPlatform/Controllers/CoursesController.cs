@@ -23,6 +23,7 @@ namespace OnlineCoursesPlatform.Controllers
         private readonly IRepository<Currency> _currencyRepo;
         private readonly IRepository<Tag> _tagRepo;
         private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly ILearningService _learningService;
 
         public CoursesController(
             ICourseService courseService,
@@ -31,7 +32,8 @@ namespace OnlineCoursesPlatform.Controllers
             IRepository<Category> categoryRepo,
             IRepository<Currency> currencyRepo,
             IRepository<Tag> tagRepo,
-            IWebHostEnvironment webHostEnvironment)
+            IWebHostEnvironment webHostEnvironment,
+            ILearningService learningService)
         {
             _courseService = courseService;
             _context = context;
@@ -40,6 +42,7 @@ namespace OnlineCoursesPlatform.Controllers
             _currencyRepo = currencyRepo;
             _tagRepo = tagRepo;
             _webHostEnvironment = webHostEnvironment;
+            _learningService = learningService;
         }
 
         [HttpGet]
@@ -302,22 +305,28 @@ namespace OnlineCoursesPlatform.Controllers
             var isEnrolled = false;
             var isOwner = !string.IsNullOrEmpty(userId) && course.InstructorId.ToString() == userId;
             var progressPercentage = 0;
+            var completedLessons = 0;
             var hasReviewed = false;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                var enrollment = await _context.Enrollments.FirstOrDefaultAsync(e => e.StudentId.ToString() == userId && e.CourseId == id);
-                isEnrolled = enrollment != null;
-                progressPercentage = enrollment == null
-                    ? 0
-                    : (int)Math.Round(enrollment.ProgressPercentage, MidpointRounding.AwayFromZero);
-                hasReviewed = course.Reviews.Any(review => review.StudentId.ToString() == userId);
-            }
-
             var firstLessonId = course.Sections
                 .OrderBy(section => section.OrderIndex)
                 .SelectMany(section => section.Lessons.OrderBy(lesson => lesson.OrderIndex))
                 .Select(lesson => (int?)lesson.Id)
                 .FirstOrDefault();
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var enrollment = await _context.Enrollments.FirstOrDefaultAsync(e => e.StudentId.ToString() == userId && e.CourseId == id);
+                isEnrolled = enrollment != null;
+                hasReviewed = course.Reviews.Any(review => review.StudentId.ToString() == userId);
+
+                if (enrollment != null)
+                {
+                    var progressSummary = await _learningService.GetCourseProgressAsync(course.Id, enrollment.StudentId);
+                    progressPercentage = progressSummary.ProgressPercentage;
+                    completedLessons = progressSummary.CompletedLessons;
+                    firstLessonId = progressSummary.ContinueLessonId ?? firstLessonId;
+                }
+            }
 
             var viewModel = new CourseDetailsViewModel
             {
@@ -343,6 +352,7 @@ namespace OnlineCoursesPlatform.Controllers
                 IsEnrolled = isEnrolled,
                 IsOwner = isOwner,
                 ProgressPercentage = progressPercentage,
+                CompletedLessons = completedLessons,
                 CanReview = isEnrolled && !isOwner,
                 HasReviewed = hasReviewed,
                 FirstLessonId = firstLessonId,
