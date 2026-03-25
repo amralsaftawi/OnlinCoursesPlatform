@@ -1,50 +1,190 @@
-﻿@using OnlineCoursesPlatform.Dtos
+@using OnlineCoursesPlatform.Dtos
 @model AdminDashboardDto
 
-<h2 class="mb-4">Admin Dashboard</h2>
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
 
-<div class="row">
+<section class="page-hero mb-4">
+    <span class="eyebrow mb-3"><i class="fa-solid fa-shield-halved"></i>Admin Workspace</span>
+    <h1 class="section-title mb-2">Run the platform from one place.</h1>
+    <p class="section-subtitle mb-0">Approve courses, control user roles, and manage shared platform data that instructors should never own directly.</p>
+</section>
 
-    <!-- Users -->
-    <div class="col-md-4">
-        <div class="card text-white bg-primary mb-3 shadow">
-            <div class="card-body">
-                <h5 class="card-title">Users</h5>
-                <h2>@Model.UsersCount</h2>
-            </div>
+<section class="row g-4 mb-4">
+    <div class="col-md-6 col-xl-3">
+        <div class="dashboard-card p-4 h-100">
+            <div class="soft-badge mb-3">Users</div>
+            <div class="metric-value">@Model.UsersCount</div>
+            <p class="text-muted mb-0 mt-2">Accounts across students, instructors, and admins.</p>
         </div>
     </div>
-
-    <!-- Courses -->
-    <div class="col-md-4">
-        <div class="card text-white bg-success mb-3 shadow">
-            <div class="card-body">
-                <h5 class="card-title">Courses</h5>
-                <h2>@Model.CoursesCount</h2>
-            </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="dashboard-card p-4 h-100">
+            <div class="soft-badge mb-3">Pending</div>
+            <div class="metric-value">@Model.PendingCoursesCount</div>
+            <p class="text-muted mb-0 mt-2">Courses waiting for a review decision.</p>
         </div>
     </div>
-
-    <!-- Pending -->
-    <div class="col-md-4">
-        <div class="card text-white bg-warning mb-3 shadow">
-            <div class="card-body">
-                <h5 class="card-title">Pending Courses</h5>
-                <h2>@Model.PendingCoursesCount</h2>
-            </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="dashboard-card p-4 h-100">
+            <div class="soft-badge mb-3">Approved</div>
+            <div class="metric-value">@Model.ApprovedCoursesCount</div>
+            <p class="text-muted mb-0 mt-2">Courses currently visible in the public catalog.</p>
         </div>
     </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="dashboard-card p-4 h-100">
+            <div class="soft-badge mb-3">Rejected</div>
+            <div class="metric-value">@Model.RejectedCoursesCount</div>
+            <p class="text-muted mb-0 mt-2">Courses returned for fixes and resubmission.</p>
+        </div>
+    </div>
+</section>
 
-</div>
+<section class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="metric-card p-4 h-100">
+            <div class="text-muted small mb-2">Categories</div>
+            <div class="display-6 fw-bold">@Model.CategoriesCount</div>
+            <div class="small text-muted">Shared classification list.</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="metric-card p-4 h-100">
+            <div class="text-muted small mb-2">Currencies</div>
+            <div class="display-6 fw-bold">@Model.CurrenciesCount</div>
+            <div class="small text-muted">Normalized pricing options.</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="metric-card p-4 h-100">
+            <div class="text-muted small mb-2">Tags</div>
+            <div class="display-6 fw-bold">@Model.TagsCount</div>
+            <div class="small text-muted">Reusable course discovery labels.</div>
+        </div>
+    </div>
+</section>
 
-<hr />
+<section class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="dashboard-card p-4 h-100">
+            <div class="soft-badge mb-3">Revenue Snapshot</div>
+            <div class="metric-value">@Model.RevenueByCurrency.Count()</div>
+            <p class="text-muted mb-0 mt-2">Tracked currencies contributing to platform sales.</p>
+        </div>
+    </div>
+    <div class="col-lg-8">
+        <section class="table-panel p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">Collected Revenue</h5>
+                <span class="small text-muted">Calculated from all enrollments across paid courses.</span>
+            </div>
 
-<div class="mt-4">
-    <a asp-action="Users" class="btn btn-outline-primary me-2">
-        Manage Users
-    </a>
+            @if (Model.RevenueByCurrency.Any())
+            {
+                <div class="row g-3">
+                    @foreach (var revenue in Model.RevenueByCurrency)
+                    {
+                        <div class="col-md-6 col-xl-4">
+                            <div class="metric-card p-3 h-100">
+                                <div class="text-muted small mb-2">@revenue.CurrencyCode</div>
+                                <div class="fw-bold fs-4">@revenue.CurrencySymbol@revenue.TotalRevenue</div>
+                                <div class="small text-muted">Gross enrollment value in this currency.</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state py-4">
+                    <i class="fa-solid fa-wallet fs-2 text-muted mb-3"></i>
+                    <h5 class="fw-bold">No revenue yet</h5>
+                    <p class="text-muted mb-0">Revenue totals will appear here once students enroll in paid courses.</p>
+                </div>
+            }
+        </section>
+    </div>
+</section>
 
-    <a asp-action="Courses" class="btn btn-outline-success">
-        Review Courses
-    </a>
-</div>
+<section class="row g-4 mb-4">
+    <div class="col-md-6 col-xl-3">
+        <div class="quick-link-card p-4 h-100">
+            <h5 class="fw-bold">Users And Roles</h5>
+            <p class="text-muted">Promote admins, set instructor or student roles, and remove bad accounts safely.</p>
+            <a asp-action="Users" class="btn btn-app-primary">Manage Users</a>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="quick-link-card p-4 h-100">
+            <h5 class="fw-bold">Course Review</h5>
+            <p class="text-muted">Approve, reject, reset to pending, or delete courses when needed.</p>
+            <a asp-action="Courses" class="btn btn-app-primary">Manage Courses</a>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-2">
+        <div class="quick-link-card p-4 h-100">
+            <h5 class="fw-bold">Categories</h5>
+            <p class="text-muted">Own the classification list.</p>
+            <a asp-action="Categories" class="btn btn-app-primary">Open</a>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-2">
+        <div class="quick-link-card p-4 h-100">
+            <h5 class="fw-bold">Currencies</h5>
+            <p class="text-muted">Control pricing reference data.</p>
+            <a asp-action="Currencies" class="btn btn-app-primary">Open</a>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-2">
+        <div class="quick-link-card p-4 h-100">
+            <h5 class="fw-bold">Tags</h5>
+            <p class="text-muted">Keep discovery clean and reusable.</p>
+            <a asp-action="Tags" class="btn btn-app-primary">Open</a>
+        </div>
+    </div>
+</section>
+
+<section class="row g-4">
+    <div class="col-lg-6">
+        <section class="table-panel p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">Latest Users</h5>
+                <a asp-action="Users" class="btn btn-sm btn-outline-dark rounded-pill">View All</a>
+            </div>
+            <div class="d-flex flex-column gap-3">
+                @foreach (var user in Model.LatestUsers)
+                {
+                    <div class="d-flex justify-content-between align-items-center border rounded-3 px-3 py-2">
+                        <div>
+                            <div class="fw-semibold">@user.FirstName @user.LastName</div>
+                            <div class="small text-muted">@user.Email</div>
+                        </div>
+                        <span class="soft-badge">#@user.Id</span>
+                    </div>
+                }
+            </div>
+        </section>
+    </div>
+    <div class="col-lg-6">
+        <section class="table-panel p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">Pending Courses</h5>
+                <a asp-action="Courses" class="btn btn-sm btn-outline-dark rounded-pill">Review Queue</a>
+            </div>
+            <div class="d-flex flex-column gap-3">
+                @foreach (var course in Model.PendingCourses)
+                {
+                    <div class="d-flex justify-content-between align-items-center border rounded-3 px-3 py-2">
+                        <div>
+                            <div class="fw-semibold">@course.Title</div>
+                            <div class="small text-muted">By @course.Instructor.FirstName @course.Instructor.LastName</div>
+                        </div>
+                        <span class="soft-badge text-warning">@course.Status</span>
+                    </div>
+                }
+            </div>
+        </section>
+    </div>
+</section>

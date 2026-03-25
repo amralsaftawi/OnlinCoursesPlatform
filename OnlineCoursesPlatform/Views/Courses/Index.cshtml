@@ -1,161 +1,264 @@
 @model IEnumerable<OnlineCoursesPlatform.ViewModels.CourseListViewModel>
+@using System.Globalization
+
+@functions {
+    private static string ResolveProfileImage(string? profilePicture)
+    {
+        if (string.IsNullOrWhiteSpace(profilePicture))
+        {
+            return "/images/profiles/default-avatar.png";
+        }
+
+        return profilePicture.StartsWith("/")
+            ? profilePicture
+            : $"/images/profiles/{profilePicture}";
+    }
+
+    private static string BuildPageUrl(int pageNumber, string? currentSearch, object? selectedCategory, List<int> selectedTags)
+    {
+        var parts = new List<string> { $"page={pageNumber}" };
+
+        if (!string.IsNullOrWhiteSpace(currentSearch))
+        {
+            parts.Add($"searchTerm={Uri.EscapeDataString(currentSearch)}");
+        }
+
+        if (selectedCategory != null && !string.IsNullOrWhiteSpace(selectedCategory.ToString()))
+        {
+            parts.Add($"categoryId={selectedCategory}");
+        }
+
+        foreach (var tagId in selectedTags)
+        {
+            parts.Add($"selectedTags={tagId}");
+        }
+
+        return $"/Courses?{string.Join("&", parts)}";
+    }
+}
 
 @{
     ViewData["Title"] = "All Courses";
-
     int currentPage = ViewBag.CurrentPage ?? 1;
     int totalPages = ViewBag.TotalPages ?? 1;
+    int totalCount = ViewBag.TotalCount ?? 0;
+    bool hasFilters = ViewBag.HasFilters ?? false;
+    var selectedTags = ViewBag.SelectedTags as List<int> ?? new List<int>();
+    string? currentSearch = ViewBag.CurrentSearch as string;
 }
 
 <style>
-    /* --- Your Existing Premium UI Styles --- */
-    .hero-section { background: linear-gradient(135deg, #4e54c8, #8f94fb); color: white; border-radius: 12px; padding: 3rem 2rem; box-shadow: 0 10px 30px rgba(78, 84, 200, 0.2); margin-bottom: 2rem; }
-    .hover-lift { transition: transform 0.3s ease, box-shadow 0.3s ease; border: none; }
-    .hover-lift:hover { transform: translateY(-8px); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important; }
-    .card-img-wrapper { overflow: hidden; border-top-left-radius: calc(0.25rem - 1px); border-top-right-radius: calc(0.25rem - 1px); position: relative; }
-    .card-img-wrapper img { transition: transform 0.5s ease; }
-    .hover-lift:hover .card-img-wrapper img { transform: scale(1.05); }
-    .price-tag { font-weight: 800; color: #2e7d32; font-size: 1.15rem; background: rgba(46, 125, 50, 0.1); padding: 5px 12px; border-radius: 20px; }
-    .pagination .page-link { border-radius: 50% !important; margin: 0 4px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: #4e54c8; font-weight: 600; border: none; }
-    .pagination .page-item.active .page-link { background-color: #4e54c8; color: white; }
-    .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .filter-card { border-radius: 15px; border: none; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .browse-layout {
+        display: grid;
+        grid-template-columns: minmax(260px, 320px) 1fr;
+        gap: 1.5rem;
+        align-items: start;
+    }
+
+    .browse-sidebar {
+        position: sticky;
+        top: 96px;
+    }
+
+    .browse-card {
+        overflow: hidden;
+    }
+
+    .browse-card-image {
+        height: 220px;
+        width: 100%;
+        object-fit: cover;
+    }
+
+    .browse-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .browse-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .browse-card-summary {
+        min-height: 3rem;
+    }
+
+    @@media (max-width: 991.98px) {
+        .browse-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .browse-sidebar {
+            position: static;
+        }
+    }
 </style>
 
-<div class="container mt-4 mb-5">
-    
-    @* --- Hero Header --- *@
-    <div class="hero-section d-flex flex-column flex-md-row align-items-center justify-content-between">
+<section class="page-hero mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
         <div>
-            <h1 class="fw-bold mb-2">Explore Our Best Courses 🎓</h1>
-            <p class="lead mb-0 text-white-50">Advance your career and learn from top experts.</p>
+            <span class="eyebrow mb-3"><i class="fa-solid fa-book-open"></i>Course Discovery</span>
+            <h1 class="section-title mb-2">Browse courses with clearer signals.</h1>
+            <p class="section-subtitle mb-0">Find the right instructor, compare categories faster, and jump into course details without digging around.</p>
         </div>
-        
-        @* Show Create Button only to Instructors *@
-        @if (User.IsInRole("Instructor"))
-        {
-            <div class="mt-4 mt-md-0">
-                <a asp-action="Create" class="btn btn-light btn-lg fw-bold shadow-sm rounded-pill px-4">
-                <i class="bi bi-plus-circle-fill me-2 text-primary"></i> Create Course
-                </a>
-            </div>
-        }
-    </div>
 
-    @* --- Advanced Multi-Filter Form --- *@
-    <div class="filter-card p-4 mb-5">
-        <form asp-action="Index" method="get" class="row g-3 align-items-end">
-            <div class="col-md-4">
-                <label class="form-label fw-semibold">Keyword</label>
-                <input type="text" name="searchTerm" class="form-control rounded-pill border-light bg-light shadow-none" 
-                       placeholder="Search courses..." value="@ViewBag.CurrentSearch">
-            </div>
-            <div class="col-md-3">
-                <label class="form-label fw-semibold">Category</label>
-                <select name="categoryId" asp-items="ViewBag.Categories" class="form-select rounded-pill border-light bg-light shadow-none">
-                    <option value="">All Categories</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label fw-semibold">Tags</label>
-                <div class="dropdown">
-                    <button class="btn btn-light rounded-pill border-light w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="dropdown">
-                        <span class="small text-muted">Select Tags</span>
-                        <i class="bi bi-chevron-down small"></i>
-                    </button>
-                    <div class="dropdown-menu p-3 shadow border-0 rounded-3" style="min-width: 250px;">
-                        @foreach (var tag in (IEnumerable<OnlineCoursesPlatform.Models.Tag>)ViewBag.Tags)
-    {
-                            <div class="form-check mb-1">
-                                <input class="form-check-input" type="checkbox" name="selectedTags" value="@tag.Id" 
-                                       id="tag_@tag.Id" @(ViewBag.SelectedTags.Contains(tag.Id) ? "checked" : "")>
-                                <label class="form-check-label small" for="tag_@tag.Id">@tag.Name</label>
-        </div>
-    }
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary rounded-pill w-100 fw-bold shadow-sm">Apply Filters</button>
-            </div>
-        </form>
-        </div>
-    }
-
-    @* --- Courses Grid --- *@
-    <div class="row g-4">
-        @if (!Model.Any())
-        {
-            <div class="col-12 text-center py-5">
-                    <h3 class="fw-bold text-secondary mb-3">No courses found 😔</h3>
-                <a asp-action="Index" class="btn btn-link text-primary">Reset all filters</a>
-            </div>
-        }
-        else
-        {
-            foreach (var course in Model)
+        <div class="d-flex flex-wrap gap-2">
+            <span class="soft-badge"><i class="fa-solid fa-layer-group"></i>@totalCount result@(totalCount == 1 ? string.Empty : "s")</span>
+            @if (User.IsInRole("Instructor"))
             {
-                <div class="col-md-6 col-lg-4 d-flex align-items-stretch">
-                    <div class="card w-100 shadow-sm hover-lift">
-                        <div class="card-img-wrapper">
-                            <img src="@(string.IsNullOrEmpty(course.ImageUrl) ? "/images/default-course.jpg" : course.ImageUrl)" class="card-img-top w-100" style="height: 220px; object-fit: cover;">
-                            <span class="badge bg-dark position-absolute top-0 start-0 m-3 px-3 py-2 rounded-pill">@course.CategoryName</span>
-                        </div>
+                <a asp-action="Create" class="btn btn-app-primary">
+                    <i class="fa-solid fa-plus me-2"></i>Create Course
+                </a>
+            }
+        </div>
+    </div>
+</section>
 
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title fw-bold text-dark line-clamp-2">@course.Title</h5>
-                            <p class="card-text text-muted small line-clamp-2 mb-4 flex-grow-1">@course.Description</p>
-                            <div class="d-flex align-items-center border-top pt-3">
-                                <img src="/images/profiles/@(string.IsNullOrEmpty(course.InstructorProfilePicture) ? "default-avatar.png" : course.InstructorProfilePicture)" class="rounded-circle me-2" width="35" height="35" style="object-fit: cover;">
-                                <div class="lh-sm">
-                                    <small class="text-muted d-block" style="font-size: 0.7rem;">Instructor</small>
-                                    <small class="fw-bold text-dark">@course.InstructorName</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-footer bg-white border-0 py-3 d-flex justify-content-between align-items-center">
-                            <span class="price-tag">@course.CurrencySymbol@course.Price</span>
-                            <a asp-action="Details" asp-route-id="@course.Id" class="btn btn-primary rounded-pill px-4 fw-semibold">View</a>
-                        </div>
+<section class="browse-layout">
+    <aside class="browse-sidebar">
+        <section class="content-panel p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0">Filter Courses</h5>
+                @if (hasFilters)
+                {
+                    <a asp-action="Index" class="small text-decoration-none">Clear All</a>
+                }
+            </div>
+
+            <form asp-action="Index" method="get" class="d-flex flex-column gap-3">
+                <div>
+                    <label class="form-label fw-semibold">Keyword</label>
+                    <input type="text" name="searchTerm" class="form-control" placeholder="Title or topic" value="@currentSearch" />
+                </div>
+
+                <div>
+                    <label class="form-label fw-semibold">Category</label>
+                    <select name="categoryId" asp-items="ViewBag.Categories" class="form-select">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label fw-semibold">Tags</label>
+                    <div class="d-flex flex-column gap-2 p-3 rounded-4 border bg-white">
+                        @foreach (var tag in (IEnumerable<OnlineCoursesPlatform.Models.Tag>)ViewBag.Tags)
+                        {
+                            <label class="form-check d-flex align-items-center gap-2 mb-0">
+                                <input class="form-check-input" type="checkbox" name="selectedTags" value="@tag.Id" @(selectedTags.Contains(tag.Id) ? "checked" : null) />
+                                <span class="form-check-label">@tag.Name</span>
+                            </label>
+                        }
                     </div>
                 </div>
-            }
-        }
-    </div>
 
-    @* --- Pagination --- *@
-    @if (totalPages > 1)
-    {
-        <nav class="mt-5 d-flex justify-content-center">
-            <ul class="pagination shadow-sm rounded-pill bg-white p-2">
+                <button type="submit" class="btn btn-app-primary w-100">Apply Filters</button>
+            </form>
+        </section>
+    </aside>
 
-                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                    <a class="page-link" asp-action="Index" asp-route-page="@(currentPage - 1)">
-                        <span aria-hidden="true">&laquo;</span>
-                    </a>
-                </li>
-
-                @for (int i = 1; i <= totalPages; i++)
+    <div class="d-flex flex-column gap-4">
+        <section class="content-panel p-4">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                <div>
+                    <h5 class="fw-bold mb-1">Explore The Catalog</h5>
+                    <p class="text-muted mb-0">Each card now highlights the instructor and price more clearly, and the whole card opens the course.</p>
+                </div>
+                @if (hasFilters)
                 {
-                    <li class="page-item @(i == currentPage ? "active" : "")">
-                        @{
-                            var routeData = new Dictionary<string, string> {
-                                { "page", i.ToString() },
-                                { "searchTerm", ViewBag.CurrentSearch },
-                                { "categoryId", ViewBag.SelectedCategory?.ToString() }
-                            };
+                    <div class="browse-meta">
+                        @if (!string.IsNullOrWhiteSpace(currentSearch))
+                        {
+                            <span class="soft-badge">Search: @currentSearch</span>
                         }
-                        <a class="page-link" asp-action="Index" asp-all-route-data="routeData">@i</a>
-                    </li>
+                        @if ((ViewBag.SelectedCategory as int?) > 0)
+                        {
+                            <span class="soft-badge">Category Filter On</span>
+                        }
+                        @if (selectedTags.Any())
+                        {
+                            <span class="soft-badge">@selectedTags.Count tag filter@(selectedTags.Count == 1 ? string.Empty : "s")</span>
+                        }
+                    </div>
                 }
+            </div>
+        </section>
 
-                <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                    <a class="page-link" asp-action="Index" asp-route-page="@(currentPage + 1)">
-                        <span aria-hidden="true">&raquo;</span>
-                    </a>
-                </li>
+        <section>
+            <div class="row g-4">
+                @if (!Model.Any())
+                {
+                    <div class="col-12">
+                        <div class="empty-state">
+                            <i class="fa-regular fa-folder-open fs-1 text-muted mb-3"></i>
+                            <h4 class="fw-bold">No courses matched your filters</h4>
+                            <p class="text-muted">Try a broader search or reset the current filters.</p>
+                            <a asp-action="Index" class="btn btn-app-primary mt-2">Reset Filters</a>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var course in Model)
+                    {
+                        <div class="col-md-6 col-xl-4">
+                            <article class="course-card browse-card h-100 position-relative" onclick="window.location='@Url.Action("Details", "Courses", new { id = course.Id })'" role="link" tabindex="0" onkeydown="if(event.key==='Enter' || event.key===' '){ window.location='@Url.Action("Details", "Courses", new { id = course.Id })'; }" style="cursor:pointer;">
+                                <div class="position-relative">
+                                    <img src="@(string.IsNullOrWhiteSpace(course.ImageUrl) ? "/images/default-course.jpg" : course.ImageUrl)" class="browse-card-image" alt="@course.Title" />
+                                    <span class="soft-badge position-absolute top-0 start-0 m-3">@course.CategoryName</span>
+                                </div>
 
-            </ul>
-        </nav>
-    }
-</div>
+                                <div class="p-4 d-flex flex-column h-100">
+                                    <div class="browse-card-header mb-3">
+                                        <a asp-controller="Instructor" asp-action="Profile" asp-route-id="@course.InstructorId" class="d-flex align-items-center gap-2 text-decoration-none position-relative" onclick="event.stopPropagation();">
+                                            <img src="@ResolveProfileImage(course.InstructorProfilePicture)" class="rounded-circle border" width="44" height="44" style="object-fit: cover;" alt="@course.InstructorName" />
+                                            <div>
+                                                <div class="small text-muted">Instructor</div>
+                                                <div class="fw-semibold">@(string.IsNullOrWhiteSpace(course.InstructorName) ? "Unknown Instructor" : course.InstructorName)</div>
+                                            </div>
+                                        </a>
+                                        <div class="text-end">
+                                            <div class="small text-muted text-uppercase">Price</div>
+                                            <div class="fw-bold fs-5 text-primary">@course.CurrencySymbol@course.Price.ToString("0.##", CultureInfo.InvariantCulture)</div>
+                                        </div>
+                                    </div>
+
+                                    <h5 class="fw-bold line-clamp-2 mb-2">@course.Title</h5>
+                                    <p class="text-muted browse-card-summary line-clamp-2 mb-4">@course.Description</p>
+
+                                    <div class="mt-auto d-flex justify-content-between align-items-center gap-3">
+                                        <span class="small text-muted">Open the full syllabus and enrollment details.</span>
+                                        <a asp-action="Details" asp-route-id="@course.Id" class="btn btn-app-primary" onclick="event.stopPropagation();">Open Course</a>
+                                    </div>
+                                </div>
+                            </article>
+                        </div>
+                    }
+                }
+            </div>
+
+            @if (totalPages > 1)
+            {
+                <nav class="mt-5 d-flex justify-content-center">
+                    <ul class="pagination bg-white rounded-pill p-2 shadow-sm">
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <a class="page-link" href="@(currentPage == 1 ? "#" : BuildPageUrl(currentPage - 1, currentSearch, ViewBag.SelectedCategory, selectedTags))">&laquo;</a>
+                        </li>
+                        @for (int i = 1; i <= totalPages; i++)
+                        {
+                            <li class="page-item @(i == currentPage ? "active" : "")">
+                                <a class="page-link" href="@BuildPageUrl(i, currentSearch, ViewBag.SelectedCategory, selectedTags)">@i</a>
+                            </li>
+                        }
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <a class="page-link" href="@(currentPage == totalPages ? "#" : BuildPageUrl(currentPage + 1, currentSearch, ViewBag.SelectedCategory, selectedTags))">&raquo;</a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        </section>
+    </div>
+</section>

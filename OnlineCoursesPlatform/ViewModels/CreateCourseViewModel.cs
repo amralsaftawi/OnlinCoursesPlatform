@@ -57,12 +57,7 @@ namespace OnlineCoursesPlatform.ViewModels
         [StringLength(50, MinimumLength = 2, ErrorMessage = "Language must be between 2 and 50 characters")]
         public string Language { get; set; } = "English";
 
-        [Required(ErrorMessage = "Total duration is required")]
-        [Range(1, 1000, ErrorMessage = "Duration must be between 1 and 1000 hours")]
-        [Display(Name = "Total Duration (hours)")]
         public int TotalDuration { get; set; }
 
-        [Display(Name = "Status")]
-        public CourseStatus Status { get; set; } = CourseStatus.Pending;
     }
 }

@@ -3,13 +3,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using OnlinCoursePlatform.ViewModels;
 using OnlinCoursesPlatform.Data;
 using OnlineCoursesPlatform.Models;
+using OnlineCoursesPlatform.Models.Enums;
 using OnlineCoursesPlatform.Repositories.Interface;
 using OnlineCoursesPlatform.Services.Interfaces;
 using OnlineCoursesPlatform.ViewModels;
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 
 namespace OnlineCoursesPlatform.Controllers
 {
@@ -23,11 +24,14 @@ namespace OnlineCoursesPlatform.Controllers
         private readonly IRepository<Tag> _tagRepo;
         private readonly IWebHostEnvironment _webHostEnvironment;
 
-        public CoursesController(ICourseService courseService, AppDbContext context, IMapper mapper,
-        IRepository<Category> categoryRepo,
-        IRepository<Currency> currencyRepo,
-        IRepository<Tag> tagRepo,
-        IWebHostEnvironment webHostEnvironment)
+        public CoursesController(
+            ICourseService courseService,
+            AppDbContext context,
+            IMapper mapper,
+            IRepository<Category> categoryRepo,
+            IRepository<Currency> currencyRepo,
+            IRepository<Tag> tagRepo,
+            IWebHostEnvironment webHostEnvironment)
         {
             _courseService = courseService;
             _context = context;
@@ -38,96 +42,413 @@ namespace OnlineCoursesPlatform.Controllers
             _webHostEnvironment = webHostEnvironment;
         }
 
-        // GET: CoursesController
-
-[HttpGet]
-public async Task<ActionResult> Index(string searchTerm, int? categoryId, List<int> selectedTags, int page = 1)
-{
-    // Initialize default values to prevent NullReference in View
-    ViewBag.Categories = new SelectList(Enumerable.Empty<Category>(), "Id", "Title");
-    ViewBag.Tags = Enumerable.Empty<Tag>();
-    ViewBag.SelectedTags = selectedTags ?? new List<int>();
-    ViewBag.CurrentSearch = searchTerm;
-
-    try
-    {
-        const int PageSize = 6;
-
-        // 1. Fetch Data
-        var allCourses = await _courseService.GetAllCoursesAsync() ?? Enumerable.Empty<Course>();
-        var coursesQuery = allCourses.AsQueryable();
-
-        // 2. Load Filter Data (Dropdowns & Checkboxes)
-        var categories = await _categoryRepo.GetAllAsync() ?? Enumerable.Empty<Category>();
-        var tags = await _tagRepo.GetAllAsync() ?? Enumerable.Empty<Tag>();
-
-        ViewBag.Categories = new SelectList(categories, "Id", "Title", categoryId);
-        ViewBag.Tags = tags;
-
-        // 3. Filtering Logic
-        if (!string.IsNullOrWhiteSpace(searchTerm))
+        [HttpGet]
+        public async Task<ActionResult> Index(string searchTerm, int? categoryId, List<int> selectedTags, int page = 1)
         {
-            var term = searchTerm.Trim().ToLower();
-            coursesQuery = coursesQuery.Where(c => 
-                c.Title.ToLower().Contains(term) || 
-                (c.Description != null && c.Description.ToLower().Contains(term))
-            );
+            ViewBag.Categories = new SelectList(Enumerable.Empty<Category>(), "Id", "Title");
+            ViewBag.Tags = Enumerable.Empty<Tag>();
+            ViewBag.SelectedTags = selectedTags ?? new List<int>();
+            ViewBag.CurrentSearch = searchTerm;
+
+            try
+            {
+                const int pageSize = 6;
+                var coursesQuery = _context.Courses
+                    .AsNoTracking()
+                    .Include(c => c.Category)
+                    .Include(c => c.Currency)
+                    .Include(c => c.Instructor)
+                    .Include(c => c.CourseTags)
+                    .AsQueryable();
+
+                if (!User.IsInRole("Admin"))
+                {
+                    coursesQuery = coursesQuery.Where(c => c.Status == CourseStatus.Approved);
+                }
+
+                var categories = await _categoryRepo.GetAllAsync() ?? Enumerable.Empty<Category>();
+                var tags = await _tagRepo.GetAllAsync() ?? Enumerable.Empty<Tag>();
+
+                ViewBag.Categories = new SelectList(categories, "Id", "Title", categoryId);
+                ViewBag.Tags = tags;
+
+                if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    var term = searchTerm.Trim().ToLower();
+                    coursesQuery = coursesQuery.Where(c =>
+                        c.Title.ToLower().Contains(term) ||
+                        (c.Description != null && c.Description.ToLower().Contains(term)));
+                }
+
+                if (categoryId.HasValue && categoryId > 0)
+                {
+                    coursesQuery = coursesQuery.Where(c => c.CategoryId == categoryId.Value);
+                }
+
+                if (selectedTags != null && selectedTags.Any())
+                {
+                    coursesQuery = coursesQuery.Where(c =>
+                        c.CourseTags != null && c.CourseTags.Any(ct => selectedTags.Contains(ct.TagId)));
+                }
+
+                page = Math.Max(page, 1);
+                var totalCount = await coursesQuery.CountAsync();
+                var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+                var paginatedCourses = await coursesQuery
+                    .OrderByDescending(c => c.Id)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                var mappedCourses = _mapper.Map<IEnumerable<CourseListViewModel>>(paginatedCourses);
+                ViewBag.CurrentPage = page;
+                ViewBag.TotalPages = totalPages;
+                ViewBag.SelectedCategory = categoryId;
+                ViewBag.TotalCount = totalCount;
+                ViewBag.HasFilters = !string.IsNullOrWhiteSpace(searchTerm) || (categoryId.HasValue && categoryId > 0) || (selectedTags?.Any() == true);
+
+                return View(mappedCourses);
+            }
+            catch
+            {
+                ViewBag.Error = "We encountered an issue loading the filters, but you can still browse courses.";
+                return View(new List<CourseListViewModel>());
+            }
         }
 
-        if (categoryId.HasValue && categoryId > 0)
-        {
-            coursesQuery = coursesQuery.Where(c => c.CategoryId == categoryId.Value);
-        }
-
-        if (selectedTags != null && selectedTags.Any())
-        {
-            coursesQuery = coursesQuery.Where(c => 
-                c.CourseTags != null && c.CourseTags.Any(ct => selectedTags.Contains(ct.TagId))
-            );
-        }
-
-        // 4. Pagination
-        int totalCount = coursesQuery.Count();
-        int totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
-
-        var paginatedCourses = coursesQuery
-            .Skip((page - 1) * PageSize)
-            .Take(PageSize)
-            .ToList();
-
-        // 5. Mapping
-        var mappedCourses = _mapper.Map<IEnumerable<CourseListViewModel>>(paginatedCourses);
-
-        ViewBag.CurrentPage = page;
-        ViewBag.TotalPages = totalPages;
-        ViewBag.SelectedCategory = categoryId;
-
-        return View(mappedCourses);
-    }
-    catch (Exception ex)
-    {
-        // Log your error here
-        ViewBag.Error = "We encountered an issue loading the filters, but you can still browse courses.";
-        return View(new List<CourseListViewModel>());
-    }
-}
-
-
-
-
-       // GET: CoursesController
-     // GET: CoursesController/Create
         [HttpGet]
         [Authorize(Roles = "Instructor")]
         public async Task<ActionResult> Create()
         {
-            CreateCourseViewModel viewModel = new CreateCourseViewModel();
+            var viewModel = new CreateCourseViewModel();
+            await PopulateCreateCourseListsAsync(viewModel);
+            return View(viewModel);
+        }
 
-            // Prepare dropdown data
-            var categories = await _categoryRepo.GetAllAsync();
-            var currencies = await _currencyRepo.GetAllAsync();
-            var tags = await _tagRepo.GetAllAsync();
-            // Map to SelectListItem for dropdowns
+        [HttpPost]
+        [Authorize(Roles = "Instructor")]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> Create(CreateCourseViewModel viewModel)
+        {
+            if (!ModelState.IsValid)
+            {
+                await PopulateCreateCourseListsAsync(viewModel);
+                return View(viewModel);
+            }
+
+            var course = _mapper.Map<Course>(viewModel);
+            course.InstructorId = GetCurrentUserId();
+            course.Status = CourseStatus.Pending;
+            course.TotalDuration = 0;
+
+            if (viewModel.SelectedTagIds != null && viewModel.SelectedTagIds.Any())
+            {
+                course.CourseTags = viewModel.SelectedTagIds
+                    .Distinct()
+                    .Select(tagId => new CourseTag { TagId = tagId })
+                    .ToList();
+            }
+
+            if (viewModel.ImageFile != null && viewModel.ImageFile.Length > 0)
+            {
+                var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "courses");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                var uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(viewModel.ImageFile.FileName)}";
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using var fileStream = new FileStream(filePath, FileMode.Create);
+                await viewModel.ImageFile.CopyToAsync(fileStream);
+                course.ImageUrl = $"/images/courses/{uniqueFileName}";
+            }
+            else
+            {
+                course.ImageUrl = "/images/default-course.jpg";
+            }
+
+            var createdCourse = await _courseService.CreateCourseAsync(course);
+            TempData["SuccessMessage"] = "Course basics saved. Build your sections and lessons now, and the total duration will update automatically.";
+            return RedirectToAction("ManageContent", "Lessons", new { courseId = createdCourse.Id });
+        }
+
+        [Authorize(Roles = "Instructor")]
+        public async Task<ActionResult> Edit(int id)
+        {
+            var course = await _courseService.GetCourseByIdAsync(id);
+            if (course == null)
+                return NotFound();
+
+            if (course.InstructorId != GetCurrentUserId())
+                return Forbid();
+
+            return View(course);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Instructor")]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> Edit(int id, Course course, IFormFile? imageFile)
+        {
+            if (id != course.Id)
+                return BadRequest();
+
+            var existingCourse = await _courseService.GetCourseByIdAsync(id);
+            if (existingCourse == null)
+                return NotFound();
+
+            if (existingCourse.InstructorId != GetCurrentUserId())
+                return Forbid();
+
+            if (!ModelState.IsValid)
+                return View(course);
+
+            if (imageFile != null && imageFile.Length > 0)
+            {
+                var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "courses");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+
+                var uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(imageFile.FileName)}";
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using var fileStream = new FileStream(filePath, FileMode.Create);
+                await imageFile.CopyToAsync(fileStream);
+                course.ImageUrl = $"/images/courses/{uniqueFileName}";
+            }
+
+            course.InstructorId = existingCourse.InstructorId;
+            course.Status = existingCourse.Status;
+            course.TotalDuration = existingCourse.TotalDuration;
+            course.ImageUrl = string.IsNullOrWhiteSpace(course.ImageUrl) ? existingCourse.ImageUrl : course.ImageUrl;
+            await _courseService.UpdateCourseAsync(course);
+            TempData["Success"] = "Course information updated successfully.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        [Authorize(Roles = "Instructor")]
+        public async Task<ActionResult> Delete(int id)
+        {
+            var course = await _courseService.GetCourseByIdAsync(id);
+            if (course == null)
+                return NotFound();
+
+            if (course.InstructorId != GetCurrentUserId())
+                return Forbid();
+
+            return View(course);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Instructor")]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> Delete(int id, IFormCollection collection)
+        {
+            var course = await _courseService.GetCourseByIdAsync(id);
+            if (course == null)
+                return NotFound();
+
+            if (course.InstructorId != GetCurrentUserId())
+                return Forbid();
+
+            try
+            {
+                var success = await _courseService.DeleteCourseAsync(id);
+                if (!success)
+                    return NotFound();
+
+                TempData["Success"] = "Course deleted successfully.";
+            }
+            catch
+            {
+                TempData["Error"] = "We could not delete the course right now. Please try again.";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null)
+                return NotFound();
+
+            var course = await _context.Courses
+                .Include(c => c.Category)
+                .Include(c => c.Currency)
+                .Include(c => c.Instructor)
+                .Include(c => c.Reviews)
+                    .ThenInclude(r => r.Student)
+                .Include(c => c.CourseTags)
+                    .ThenInclude(ct => ct.Tag)
+                .Include(c => c.Sections.OrderBy(s => s.OrderIndex))
+                    .ThenInclude(s => s.Lessons.OrderBy(l => l.OrderIndex))
+                .FirstOrDefaultAsync(m => m.Id == id);
+
+            if (course == null)
+                return NotFound();
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var canPreviewUnapproved = User.IsInRole("Admin") || (!string.IsNullOrEmpty(userId) && course.InstructorId.ToString() == userId);
+            if (course.Status != CourseStatus.Approved && !canPreviewUnapproved)
+            {
+                return NotFound();
+            }
+
+            var isEnrolled = false;
+            var isOwner = !string.IsNullOrEmpty(userId) && course.InstructorId.ToString() == userId;
+            var progressPercentage = 0;
+            var hasReviewed = false;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var enrollment = await _context.Enrollments.FirstOrDefaultAsync(e => e.StudentId.ToString() == userId && e.CourseId == id);
+                isEnrolled = enrollment != null;
+                progressPercentage = enrollment == null
+                    ? 0
+                    : (int)Math.Round(enrollment.ProgressPercentage, MidpointRounding.AwayFromZero);
+                hasReviewed = course.Reviews.Any(review => review.StudentId.ToString() == userId);
+            }
+
+            var firstLessonId = course.Sections
+                .OrderBy(section => section.OrderIndex)
+                .SelectMany(section => section.Lessons.OrderBy(lesson => lesson.OrderIndex))
+                .Select(lesson => (int?)lesson.Id)
+                .FirstOrDefault();
+
+            var viewModel = new CourseDetailsViewModel
+            {
+                Id = course.Id,
+                Title = course.Title,
+                Description = course.Description,
+                Price = course.Price,
+                CurrencyName = course.Currency?.Name ?? "Unknown",
+                CurrencySymbol = course.Currency?.Symbol ?? "$",
+                ImageUrl = course.ImageUrl,
+                CategoryName = course.Category?.Title ?? "General",
+                InstructorId = course.InstructorId,
+                InstructorName = $"{course.Instructor?.FirstName} {course.Instructor?.LastName}".Trim(),
+                InstructorProfilePicture = course.Instructor?.ProfilePicture,
+                Level = course.Level.ToString(),
+                Status = course.Status.ToString(),
+                Language = course.Language,
+                AverageRating = course.Reviews.Any() ? course.Reviews.Average(r => r.Rating) : 0,
+                ReviewCount = course.Reviews.Count(),
+                SectionCount = course.Sections.Count,
+                TotalLessons = course.Sections.Sum(s => s.Lessons.Count),
+                TotalDuration = course.Sections.Sum(s => s.Lessons.Sum(l => l.Duration)),
+                IsEnrolled = isEnrolled,
+                IsOwner = isOwner,
+                ProgressPercentage = progressPercentage,
+                CanReview = isEnrolled && !isOwner,
+                HasReviewed = hasReviewed,
+                FirstLessonId = firstLessonId,
+                Tags = course.CourseTags
+                    .Where(ct => ct.Tag != null)
+                    .Select(ct => ct.Tag!.Name)
+                    .ToList(),
+                Sections = course.Sections.Select(s => new SectionDetailsViewModel
+                {
+                    Id = s.Id,
+                    Title = s.Title,
+                    Lessons = s.Lessons.Select(l => new LessonDetailsViewModel
+                    {
+                        Id = l.Id,
+                        Title = l.Title,
+                        Duration = l.Duration,
+                        IsFree = l.IsFree,
+                        Type = l.Type
+                    }).ToList()
+                }).ToList(),
+                Reviews = course.Reviews
+                    .OrderByDescending(review => review.CreatedAt)
+                    .Select(review => new ReviewDetailsViewModel
+                    {
+                        Rating = review.Rating,
+                        Comment = review.Comment,
+                        CreatedAt = review.CreatedAt,
+                        StudentName = $"{review.Student?.FirstName} {review.Student?.LastName}".Trim()
+                    })
+                    .ToList()
+            };
+
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Student")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddReview(int id, [Range(1, 5)] int rating, [Required] string comment)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Challenge();
+            }
+
+            var studentId = int.Parse(userId);
+            var course = await _context.Courses
+                .Include(c => c.Reviews)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (course == null)
+            {
+                return NotFound();
+            }
+
+            if (course.InstructorId == studentId)
+            {
+                TempData["Error"] = "Course owners cannot review their own courses.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var isEnrolled = await _context.Enrollments.AnyAsync(e => e.CourseId == id && e.StudentId == studentId);
+            if (!isEnrolled)
+            {
+                TempData["Error"] = "You can review a course only after enrolling in it.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            if (string.IsNullOrWhiteSpace(comment))
+            {
+                TempData["Error"] = "Please write a short review comment.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var existingReview = course.Reviews.FirstOrDefault(review => review.StudentId == studentId);
+            if (existingReview == null)
+            {
+                _context.Reviews.Add(new Review
+                {
+                    CourseId = id,
+                    StudentId = studentId,
+                    Rating = rating,
+                    Comment = comment.Trim(),
+                    CreatedAt = DateTime.UtcNow
+                });
+                TempData["Success"] = "Your course review was added successfully.";
+            }
+            else
+            {
+                existingReview.Rating = rating;
+                existingReview.Comment = comment.Trim();
+                existingReview.CreatedAt = DateTime.UtcNow;
+                TempData["Success"] = "Your course review was updated successfully.";
+            }
+
+            await _context.SaveChangesAsync();
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        private async Task PopulateCreateCourseListsAsync(CreateCourseViewModel viewModel)
+        {
+            var categories = await _categoryRepo.GetAllAsync() ?? Enumerable.Empty<Category>();
+            var currencies = await _currencyRepo.GetAllAsync() ?? Enumerable.Empty<Currency>();
+            var tags = await _tagRepo.GetAllAsync() ?? Enumerable.Empty<Tag>();
+
             viewModel.CategoriesList = categories.Select(c => new SelectListItem
             {
                 Value = c.Id.ToString(),
@@ -137,7 +458,7 @@ public async Task<ActionResult> Index(string searchTerm, int? categoryId, List<i
             viewModel.CurrenciesList = currencies.Select(c => new SelectListItem
             {
                 Value = c.Id.ToString(),
-                Text = c.Name
+                Text = $"{c.Code} - {c.Name} ({c.Symbol})"
             });
 
             viewModel.TagsList = tags.Select(t => new SelectListItem
@@ -145,239 +466,12 @@ public async Task<ActionResult> Index(string searchTerm, int? categoryId, List<i
                 Value = t.Id.ToString(),
                 Text = t.Name
             });
-
-            return View(viewModel);
         }
 
-
-        // POST: CoursesController/Create
-        [HttpPost]
-        [Authorize(Roles = "Instructor")]
-        [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Create(CreateCourseViewModel viewModel)
+        private int GetCurrentUserId()
         {
-            if (!ModelState.IsValid)
-            {
-                var categories = await _categoryRepo.GetAllAsync();
-                var currencies = await _currencyRepo.GetAllAsync();
-                var tags = await _tagRepo.GetAllAsync();
-
-                viewModel.CategoriesList = categories.Select(c => new SelectListItem
-                {
-                    Value = c.Id.ToString(),
-                    Text = c.Title
-                });
-
-                viewModel.CurrenciesList = currencies.Select(c => new SelectListItem
-                {
-                    Value = c.Id.ToString(),
-                    Text = c.Name
-                });
-
-                viewModel.TagsList = tags.Select(t => new SelectListItem
-                {
-                    Value = t.Id.ToString(),
-                    Text = t.Name
-                });
-
-                return View(viewModel);
-            }
-
-            // Map ViewModel to Course entity using AutoMapper ⭐
-            var course = _mapper.Map<Course>(viewModel);
-            course.InstructorId = GetLoginInstructor();
-
-            // Map standard SelectedTagIds to CourseTags
-            if (viewModel.SelectedTagIds != null && viewModel.SelectedTagIds.Any())
-            {
-                course.CourseTags = viewModel.SelectedTagIds.Select(tagId => new CourseTag
-                {
-                    TagId = tagId
-                }).ToList();
-            }
-
-            // Handle Image Upload
-            if (viewModel.ImageFile != null && viewModel.ImageFile.Length > 0)
-            {
-                var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "courses");
-                if (!Directory.Exists(uploadsFolder))
-                {
-                    Directory.CreateDirectory(uploadsFolder);
-                }
-
-                var uniqueFileName = Guid.NewGuid().ToString() + "_" + viewModel.ImageFile.FileName;
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
-                {
-                    await viewModel.ImageFile.CopyToAsync(fileStream);
-                }
-
-                course.ImageUrl = "/images/courses/" + uniqueFileName;
-            }
-            else
-            {
-                // Default image if none uploaded
-                course.ImageUrl = "/images/default-course.jpg";
-            }
-
-            await _courseService.CreateCourseAsync(course);
-            TempData["Success"] = "Course created successfully! 🎉";
-            return RedirectToAction(nameof(Index));
+            var idClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            return idClaim?.Value != null ? int.Parse(idClaim.Value) : 0;
         }
-
-        // GET: CoursesController/Edit/5
-        public async Task<ActionResult> Edit(int id)
-        {
-            try
-            {
-                var course = await _courseService.GetCourseByIdAsync(id);
-                if (course == null)
-                    return NotFound();
-
-                return View(course);
-            }
-            catch (Exception ex)
-            {
-                ViewBag.Error = "An error occurred: " + ex.Message;
-                return View();
-            }
-        }
-
-        // POST: CoursesController/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Edit(int id, Course course)
-        {
-            try
-            {
-                if (id != course.Id)
-                    return BadRequest();
-
-                if (!ModelState.IsValid)
-                    return View(course);
-
-                await _courseService.UpdateCourseAsync(course);
-                return RedirectToAction(nameof(Index));
-            }
-            catch (Exception ex)
-            {
-                ViewBag.Error = "An error occurred while updating the course: " + ex.Message;
-                return View(course);
-            }
-        }
-
-        // GET: CoursesController/Delete/5
-        public async Task<ActionResult> Delete(int id)
-        {
-            try
-            {
-                var course = await _courseService.GetCourseByIdAsync(id);
-                if (course == null)
-                    return NotFound();
-
-                return View(course);
-            }
-            catch (Exception ex)
-            {
-                ViewBag.Error = "An error occurred: " + ex.Message;
-                return View();
-            }
-        }
-
-        // POST: CoursesController/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Delete(int id, IFormCollection collection)
-        {
-            try
-            {
-                var success = await _courseService.DeleteCourseAsync(id);
-                if (!success)
-                    return NotFound();
-
-                return RedirectToAction(nameof(Index));
-            }
-            catch (Exception ex)
-            {
-                ViewBag.Error = "An error occurred while deleting the course: " + ex.Message;
-                return View();
-            }
-        }
-
-        // Helper method to get current authenticated user ID
-        private int GetLoginInstructor()
-        {
-            Claim IDclaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
-            return IDclaim.Value != null ? int.Parse(IDclaim.Value) : 0;
-        }
-
-
-        
-       [HttpGet]
-public async Task<IActionResult> Details(int? id)
-{
-    if (id == null) return NotFound();
-
-    // 1. جلب الكورس مع كل العلاقات اللازمة
-    var course = await _context.Courses
-        .Include(c => c.Category)
-        .Include(c => c.Instructor)
-        .Include(c => c.Reviews)
-        .Include(c => c.Sections.OrderBy(s => s.OrderIndex))
-            .ThenInclude(s => s.Lessons.OrderBy(l => l.OrderIndex))
-        .FirstOrDefaultAsync(m => m.Id == id);
-
-    if (course == null) return NotFound();
-
-    // 2. التحقق من حالة الاشتراك لليوزر الحالي
-    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-    bool isEnrolled = false;
-
-    if (!string.IsNullOrEmpty(userId))
-    {
-        // افترضنا إن عندك جدول اسمه Enrollments بيربط اليوزر بالكورس
-        isEnrolled = await _context.Enrollments
-            .AnyAsync(e => e.StudentId.ToString() == userId && e.CourseId == id);
-    }
-
-    // 3. بناء الـ ViewModel
-    var viewModel = new CourseDetailsViewModel
-    {
-        Id = course.Id,
-        Title = course.Title,
-        Description = course.Description,
-        Price = course.Price,
-        CurrencySymbol = "$", 
-        ImageUrl = course.ImageUrl,
-        CategoryName = course.Category?.Title ?? "General",
-        InstructorName = $"{course.Instructor?.FirstName} {course.Instructor?.LastName}",
-        InstructorProfilePicture = course.Instructor?.ProfilePicture,
-        Level = course.Level.ToString(),
-        AverageRating = course.Reviews.Any() ? course.Reviews.Average(r => r.Rating) : 0,
-        ReviewCount = course.Reviews.Count(),
-        SectionCount = course.Sections.Count,
-        TotalLessons = course.Sections.Sum(s => s.Lessons.Count),
-        TotalDuration = course.Sections.Sum(s => s.Lessons.Sum(l => l.Duration)),
-        
-        // القيمة الحقيقية للاشتراك
-        IsEnrolled = isEnrolled, 
-        
-        Sections = course.Sections.Select(s => new SectionDetailsViewModel {
-            Id = s.Id,
-            Title = s.Title,
-            Lessons = s.Lessons.Select(l => new LessonDetailsViewModel {
-                Id = l.Id,
-                Title = l.Title,
-                Duration = l.Duration,
-                // تأكد إن خاصية IsFree موجودة في الموديل بتاعك وViewModel
-                IsFree = l.IsFree, 
-                Type = l.Type
-            }).ToList()
-        }).ToList()
-    };
-
-    return View(viewModel);
-}
     }
 }

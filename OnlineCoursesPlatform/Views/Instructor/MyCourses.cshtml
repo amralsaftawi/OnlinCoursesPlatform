@@ -4,89 +4,106 @@
     ViewData["Title"] = "My Courses";
 }
 
-<div class="container mt-4">
-
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold">My Courses</h2>
-
-        <a asp-controller="Courses" asp-action="Create" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Create Course
+<section class="page-hero mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div>
+            <span class="eyebrow mb-3"><i class="fa-solid fa-book"></i>Instructor Only</span>
+            <h1 class="section-title mb-2">Manage your course catalog.</h1>
+            <p class="section-subtitle mb-0">Track approved, pending, and rejected courses while keeping each curriculum and pricing model in shape.</p>
+        </div>
+        <a asp-controller="Courses" asp-action="Create" class="btn btn-app-primary">
+            <i class="fa-solid fa-plus me-2"></i>Create Course
         </a>
     </div>
+</section>
 
-    <div class="row g-4">
+<section class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="metric-card p-4 h-100">
+            <div class="text-muted small mb-2">Pending Review</div>
+            <div class="display-6 fw-bold">@Model.Count(course => course.Status == "Pending")</div>
+            <div class="small text-muted">Visible to you and admins until approved.</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="metric-card p-4 h-100">
+            <div class="text-muted small mb-2">Approved</div>
+            <div class="display-6 fw-bold">@Model.Count(course => course.Status == "Approved")</div>
+            <div class="small text-muted">Live in the public catalog for students.</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="metric-card p-4 h-100">
+            <div class="text-muted small mb-2">Rejected</div>
+            <div class="display-6 fw-bold">@Model.Count(course => course.Status == "Rejected")</div>
+            <div class="small text-muted">Needs changes before resubmission.</div>
+        </div>
+    </div>
+</section>
 
+<section class="row g-4">
+    @if (!Model.Any())
+    {
+        <div class="col-12">
+            <div class="empty-state">
+                <i class="fa-regular fa-folder-open fs-1 text-muted mb-3"></i>
+                <h4 class="fw-bold">You have not created any courses yet</h4>
+                <p class="text-muted">Start with your first course and build the curriculum from there.</p>
+                <a asp-controller="Courses" asp-action="Create" class="btn btn-app-primary">Create Your First Course</a>
+            </div>
+        </div>
+    }
+    else
+    {
         @foreach (var course in Model)
         {
-            <div class="col-lg-4 col-md-6">
-
-                <div class="card course-card shadow-sm border-0">
-
-                    <img src="@course.ImageUrl"
-                         class="card-img-top course-image"
-                         alt="@course.Title">
-
-                    <div class="card-body">
-
-                        <h5 class="card-title fw-bold">@course.Title</h5>
-
-                        <span class="badge bg-info text-dark mb-2">
-                            @course.CategoryName
-                        </span>
-
-                        <p class="mb-1">
-                            <i class="bi bi-people"></i>
-                            @course.EnrollmentsCount Students
-                        </p>
-
-                        <p class="mb-2">
-                            <strong>$@course.Price</strong>
-                        </p>
-
-                        <span class="badge @(course.Status == "Published" ? "bg-success" : "bg-secondary")">
-                            @course.Status
-                        </span>
-
-                        <div class="d-flex justify-content-between mt-3 flex-wrap gap-2">
-
-                            <a asp-controller="Lessons"
-                               asp-action="ManageContent"
-                               asp-route-courseId="@course.Id"
-                               class="btn btn-sm btn-success flex-grow-1">
-                                <i class="bi bi-journal-plus"></i> Manage Curriculum
-                            </a>
-
-                            <div class="w-100 d-flex justify-content-between mt-2">
-                                <a asp-controller="Courses"
-                                   asp-action="Edit"
-                                   asp-route-id="@course.Id"
-                                   class="btn btn-sm btn-outline-primary">
-                                    Edit Course Info
-                                </a>
-
-                                <a asp-controller="Courses"
-                                   asp-action="Details"
-                                   asp-route-id="@course.Id"
-                                   class="btn btn-sm btn-outline-dark">
-                                    View Page
-                                </a>
-
-                                <form asp-controller="Courses" asp-action="Delete" asp-route-id="@course.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to completely delete this course and all its contents? This cannot be undone.');">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                                        Delete
-                                    </button>
-                                </form>
+            <div class="col-md-6 col-xl-4">
+                <div class="course-card h-100 overflow-hidden">
+                    <img src="@(string.IsNullOrWhiteSpace(course.ImageUrl) ? "/images/default-course.jpg" : course.ImageUrl)" class="w-100" style="height: 220px; object-fit: cover;" alt="@course.Title" />
+                    <div class="p-4">
+                        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+                            <div>
+                                <h5 class="fw-bold mb-2">@course.Title</h5>
+                                <span class="soft-badge">@course.CategoryName</span>
                             </div>
-
+                            <span class="soft-badge @(course.Status == "Approved" ? "text-success" : course.Status == "Pending" ? "text-warning" : "text-danger")">@course.Status</span>
                         </div>
 
+                        @if (course.Tags.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                @foreach (var tag in course.Tags)
+                                {
+                                    <span class="soft-badge">#@tag</span>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="small text-muted mb-3">No tags assigned yet.</div>
+                        }
+
+                        <div class="d-flex justify-content-between text-muted mb-2">
+                            <span><i class="fa-solid fa-users me-2"></i>@course.EnrollmentsCount Students</span>
+                            <span class="fw-bold text-primary">@course.CurrencySymbol@course.Price</span>
+                        </div>
+                        <div class="d-flex justify-content-between text-muted mb-4 small">
+                            <span>@course.SectionCount sections &bull; @course.LessonCount lessons</span>
+                            <span>@course.TotalDuration min total</span>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2">
+                            <a asp-controller="Lessons" asp-action="ManageContent" asp-route-courseId="@course.Id" class="btn btn-sm btn-app-primary">Curriculum</a>
+                            <a asp-controller="Courses" asp-action="Edit" asp-route-id="@course.Id" class="btn btn-sm btn-outline-primary rounded-pill">Edit</a>
+                            <a asp-controller="Courses" asp-action="Details" asp-route-id="@course.Id" class="btn btn-sm btn-outline-dark rounded-pill">Preview</a>
+                            <form asp-controller="Courses" asp-action="Delete" asp-route-id="@course.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to completely delete this course and all its contents? This cannot be undone.');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">Delete</button>
+                            </form>
+                        </div>
                     </div>
-
                 </div>
-
             </div>
         }
-
-    </div>
-
-</div>
+    }
+</section>

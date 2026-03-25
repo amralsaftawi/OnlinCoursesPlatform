@@ -3,14 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OnlinCoursePlatform.Dtos;
 using OnlinCoursesPlatform.Data;
-using OnlineCoursesPlatform.Models;
+using OnlineCoursesPlatform.Models.Enums;
+using OnlineCoursesPlatform.ViewModels;
 using System.Security.Claims;
 
-namespace YourProject.Controllers
+namespace OnlineCoursesPlatform.Controllers
 {
-    [Authorize]
-    [Route("api/[controller]")]
-    [ApiController]
+    [Authorize(Roles = "Student")]
     public class EnrollmentController : Controller
     {
         private readonly AppDbContext _context;
@@ -20,93 +19,115 @@ namespace YourProject.Controllers
             _context = context;
         }
 
-        [HttpPost("enroll")]
-        public async Task<IActionResult> EnrollInCourse([FromBody] EnrollmentRequest request)
+        [HttpPost]
+        public async Task<IActionResult> Enroll([FromBody] EnrollmentRequest request)
         {
-            // 1. Get the current logged-in Student ID from Claims
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim))
             {
-                return Unauthorized(new { Message = "User not found." });
+                return Unauthorized(new { message = "User not found." });
             }
 
-            int studentId = int.Parse(userIdClaim);
+            var studentId = int.Parse(userIdClaim);
+            var course = await _context.Courses
+                .Include(c => c.Sections.OrderBy(s => s.OrderIndex))
+                    .ThenInclude(s => s.Lessons.OrderBy(l => l.OrderIndex))
+                .FirstOrDefaultAsync(c => c.Id == request.CourseId);
 
-            // 2. Check if the course exists in the database
-            var courseExists = await _context.Courses.AnyAsync(c => c.Id == request.CourseId);
-            if (!courseExists)
+            if (course == null)
             {
-                return NotFound(new { Message = "The specified course does not exist." });
+                return NotFound(new { message = "The specified course does not exist." });
             }
 
-            // 3. Check for existing enrollment to prevent duplicates
-            var isAlreadyEnrolled = await _context.Enrollments
-                .AnyAsync(e => e.StudentId == studentId && e.CourseId == request.CourseId);
+            if (course.Status != CourseStatus.Approved)
+            {
+                return BadRequest(new { message = "This course is not available for enrollment yet." });
+            }
 
+            if (course.InstructorId == studentId)
+            {
+                return BadRequest(new { message = "You already own this course. Use the instructor tools to manage it instead." });
+            }
+
+            var isAlreadyEnrolled = await _context.Enrollments.AnyAsync(e => e.StudentId == studentId && e.CourseId == request.CourseId);
             if (isAlreadyEnrolled)
             {
-                return BadRequest(new { Message = "You are already enrolled in this course." });
+                return BadRequest(new { message = "You are already enrolled in this course." });
             }
 
-            // 4. Create a new enrollment record
-            var enrollment = new Enrollment
+            _context.Enrollments.Add(new Models.Enrollment
             {
                 StudentId = studentId,
                 CourseId = request.CourseId,
-                EnrolledAt = DateTime.UtcNow, // Default is handled by SQL but good to set here
-                ProgressPercentage = 0.00m // Start with zero progress
-            };
+                EnrolledAt = DateTime.UtcNow,
+                ProgressPercentage = 0
+            });
 
-            try
-            {
-                _context.Enrollments.Add(enrollment);
-                await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
 
-                return Ok(new { Message = "Enrolled successfully! Happy learning." });
-            }
-            catch (Exception ex)
-            {
-                // Log the exception details here
-                return StatusCode(500, new { Message = "An error occurred while processing your enrollment." });
-            }
+            var firstLessonId = course.Sections.SelectMany(s => s.Lessons).OrderBy(l => l.OrderIndex).Select(l => (int?)l.Id).FirstOrDefault();
+            return Ok(new { message = "Enrolled successfully! Happy learning.", firstLessonId });
         }
 
-        [HttpGet("my-courses")]
+        [HttpGet]
         public async Task<IActionResult> GetMyEnrolledCourses()
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+            if (string.IsNullOrEmpty(userIdClaim))
+                return Unauthorized();
 
-            int studentId = int.Parse(userIdClaim);
-
-            // Fetching courses joined with Enrollment data
+            var studentId = int.Parse(userIdClaim);
             var myCourses = await _context.Enrollments
                 .Where(e => e.StudentId == studentId)
                 .Include(e => e.Course)
-                .Select(e => new
+                .Select(e => new EnrolledCourseViewModel
                 {
-                    e.CourseId,
-                    e.Course.Title,
-                    e.Course.ImageUrl,
-                    e.ProgressPercentage,
-                    e.EnrolledAt
+                    CourseId = e.CourseId,
+                    Title = e.Course.Title,
+                    ImageUrl = e.Course.ImageUrl,
+                    ProgressPercentage = (int)Math.Round(e.ProgressPercentage, MidpointRounding.AwayFromZero),
+                    EnrolledAt = e.EnrolledAt,
+                    InstructorName = (e.Course.Instructor.FirstName + " " + e.Course.Instructor.LastName).Trim(),
+                    FirstLessonId = e.Course.Sections
+                        .OrderBy(section => section.OrderIndex)
+                        .SelectMany(section => section.Lessons.OrderBy(lesson => lesson.OrderIndex))
+                        .Select(lesson => (int?)lesson.Id)
+                        .FirstOrDefault()
                 })
+                .OrderByDescending(e => e.EnrolledAt)
                 .ToListAsync();
 
             return View(myCourses);
         }
 
-
+        [HttpGet]
         public async Task<IActionResult> Confirm(int id)
         {
             var course = await _context.Courses
-                .Include(c => c.Currency) //
+                .Include(c => c.Currency)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
-            if (course == null) return NotFound();
+            if (course == null)
+                return NotFound();
 
-            return View(course); // هيفتح Views/Enrollment/Confirm.cshtml
+            if (course.Status != CourseStatus.Approved)
+                return NotFound();
+
+            var studentId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            if (course.InstructorId == studentId)
+            {
+                TempData["Error"] = "You own this course already. Open it from your instructor workspace instead of enrolling.";
+                return RedirectToAction("Details", "Courses", new { id });
+            }
+
+            var isAlreadyEnrolled = await _context.Enrollments.AnyAsync(e => e.StudentId == studentId && e.CourseId == id);
+            if (isAlreadyEnrolled)
+            {
+                TempData["Success"] = "You are already enrolled in this course.";
+                return RedirectToAction("Details", "Courses", new { id });
+            }
+
+            return View(course);
         }
     }
-
 }

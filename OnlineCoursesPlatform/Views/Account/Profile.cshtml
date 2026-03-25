@@ -2,68 +2,70 @@
 
 @{
     ViewData["Title"] = "My Profile";
+    var roleLabel = Model.IsAdmin ? "Administrator" : Model.IsInstructor ? "Instructor" : "Student";
 }
 
-<div class="container py-5">
-    <div class="row justify-content-center">
+<section class="page-hero mb-4">
+    <div class="row align-items-center g-4">
         <div class="col-md-8">
-            <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+            <span class="eyebrow mb-3"><i class="fa-regular fa-user"></i>Account Overview</span>
+            <h1 class="section-title mb-2">@Model.FullName</h1>
+            <p class="section-subtitle mb-0">Your profile reflects the tools and navigation you can access across the platform.</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <span class="soft-badge fs-6">@roleLabel</span>
+        </div>
+    </div>
+</section>
 
-                <div class="p-5 text-white @(Model.IsInstructor ? "bg-warning" : "bg-primary") text-center">
-
-                    <div class="mb-3">
-                        <img src="~/images/profiles/@(Model.ProfilePicture ?? "default-avatar.png")"
-                             class="rounded-circle shadow-sm border border-3 border-white"
-                             width="120" height="120" style="object-fit: cover;">
-                        </div>
-
-                        <h2 class="fw-bold">@Model.FullName</h2>
-
-                        <span class="badge bg-white text-dark rounded-pill px-3 py-2">
-                            <i class="fas @(Model.IsInstructor ? "fa-chalkboard-teacher" : "fa-user-graduate") me-2"></i>
-                            @string.Join(", ", Model.Roles)
-                        </span>
-
+<section class="profile-card p-4 p-lg-5">
+    <div class="row g-4 align-items-center">
+        <div class="col-lg-3 text-center text-lg-start">
+            <img src="~/images/profiles/@(Model.ProfilePicture ?? "default-avatar.png")" class="rounded-circle shadow-sm border border-3 border-white" width="140" height="140" style="object-fit: cover;" alt="@Model.FullName" />
+        </div>
+        <div class="col-lg-9">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="metric-card p-3 h-100">
+                        <div class="text-muted small text-uppercase mb-2">Full Name</div>
+                        <div class="fw-bold fs-5">@Model.FullName</div>
                     </div>
-
-                    <div class="card-body p-5">
-                        <div class="row g-4">
-                            <div class="col-md-6">
-                                <label class="text-muted small text-uppercase fw-bold">Email Address</label>
-                                <p class="fs-5 fw-semibold text-dark">@Model.Email</p>
-                            </div>
-
-                            <div class="col-md-6 text-md-end">
-                                <label class="text-muted small text-uppercase fw-bold">Member Since</label>
-                                <p class="fs-5 fw-semibold text-dark">March 2026</p>
-                            </div>
-                        </div>
-
-                        <hr class="my-4">
-
-                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-                            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
-                                <i class="fas fa-arrow-left me-2"></i> Back Home
-                            </a>
-                        
-                            <div class="d-flex gap-2">
-
-                                @if (Model.IsInstructor)
-                                {
-                                    <a asp-controller="Instructor" asp-action="Index" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm">
-                                        <i class="fas fa-tasks me-2"></i> Manage My Courses
-                                    </a>
-                                }
-
-                                <a asp-controller="Account" asp-action="EditProfile" class="btn btn-primary rounded-pill px-4 shadow-sm">
-                                    <i class="fas fa-user-edit me-2"></i> Edit Profile
-                                </a>
-
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
+                <div class="col-md-6">
+                    <div class="metric-card p-3 h-100">
+                        <div class="text-muted small text-uppercase mb-2">Email</div>
+                        <div class="fw-bold fs-5">@Model.Email</div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="metric-card p-3">
+                        <div class="text-muted small text-uppercase mb-2">Roles</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var role in Model.Roles)
+                            {
+                                <span class="soft-badge">@role</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                <a asp-controller="Account" asp-action="EditProfile" class="btn btn-app-primary">Edit Profile</a>
+
+                @if (Model.IsAdmin)
+                {
+                    <a asp-controller="Admin" asp-action="Index" class="btn btn-app-secondary-dark">Admin Dashboard</a>
+                }
+                else if (Model.IsInstructor)
+                {
+                    <a asp-controller="Instructor" asp-action="Index" class="btn btn-app-secondary-dark">Instructor Hub</a>
+                }
+                else if (Model.IsStudent)
+                {
+                    <a asp-controller="Enrollment" asp-action="GetMyEnrolledCourses" class="btn btn-app-secondary-dark">My Learning</a>
+                }
             </div>
         </div>
     </div>
+</section>

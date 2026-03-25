@@ -26,6 +26,7 @@ namespace OnlineCoursesPlatform.Mappings
 
             // ===== Course → CourseListViewModel =====
             CreateMap<Course, CourseListViewModel>()
+                .ForMember(dest => dest.InstructorId, opt => opt.MapFrom(src => src.InstructorId))
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src =>
                     src.Category != null ? src.Category.Title : "Uncategorized"))
                 .ForMember(dest => dest.CurrencySymbol, opt => opt.MapFrom(src =>
@@ -41,6 +42,7 @@ namespace OnlineCoursesPlatform.Mappings
 
             // ===== Course → CourseDetailsViewModel =====
             CreateMap<Course, CourseDetailsViewModel>()
+                .ForMember(dest => dest.InstructorId, opt => opt.MapFrom(src => src.InstructorId))
                 .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src =>
                     src.Category != null ? src.Category.Title : "Uncategorized"))
                 .ForMember(dest => dest.CurrencyName, opt => opt.MapFrom(src =>

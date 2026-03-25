@@ -1,0 +1,87 @@
+@model OnlineCoursesPlatform.ViewModels.AdminCurrenciesViewModel
+
+@{
+    ViewData["Title"] = "Manage Currencies";
+}
+
+<section class="page-hero mb-4">
+    <span class="eyebrow mb-3"><i class="fa-solid fa-money-bill-wave"></i>Admin Only</span>
+    <h1 class="section-title mb-2">Manage pricing currencies.</h1>
+    <p class="section-subtitle mb-0">Only admins should control currency definitions because they affect every course price in the platform.</p>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <section class="content-panel p-4">
+            <h5 class="fw-bold mb-3">Add Currency</h5>
+            <form asp-action="Currencies" method="post">
+                @Html.AntiForgeryToken()
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label fw-semibold">Name</label>
+                    <input asp-for="Name" class="form-control" placeholder="US Dollar" />
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Code" class="form-label fw-semibold">Code</label>
+                    <input asp-for="Code" class="form-control" placeholder="USD" />
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Symbol" class="form-label fw-semibold">Symbol</label>
+                    <input asp-for="Symbol" class="form-control" placeholder="$" />
+                </div>
+                <button type="submit" class="btn btn-app-primary w-100">Add Currency</button>
+            </form>
+        </section>
+    </div>
+    <div class="col-lg-8">
+        <section class="table-panel p-4">
+            <div class="table-responsive">
+                <table class="table app-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Currency</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var currency in Model.Currencies)
+                        {
+                            <tr>
+                                <td>
+                                    <form asp-action="UpdateCurrency" method="post" class="row g-2 align-items-center">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@currency.Id" />
+                                        <div class="col-md-6">
+                                            <input type="text" name="name" value="@currency.Name" class="form-control form-control-sm" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" name="code" value="@currency.Code" class="form-control form-control-sm" />
+                                        </div>
+                                        <div class="col-md-3">
+                                            <input type="text" name="symbol" value="@currency.Symbol" class="form-control form-control-sm" />
+                                        </div>
+                                        <div class="col-12">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill">Save</button>
+                                        </div>
+                                    </form>
+                                </td>
+                                <td class="text-end">
+                                    <form asp-action="DeleteCurrency" method="post" onsubmit="return confirm('Delete this currency?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@currency.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

@@ -1,6 +1,17 @@
-﻿@using Microsoft.AspNetCore.Identity
-@* تأكد من أن المسار هنا يطابق موديل اليوزر الخاص بك *@
+@using Microsoft.AspNetCore.Identity
 @inject UserManager<OnlineCoursesPlatform.Models.User> userManager
+
+@{
+    var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+    var currentUser = isAuthenticated ? await userManager.GetUserAsync(User) : null;
+    var currentRoles = currentUser != null ? await userManager.GetRolesAsync(currentUser) : Array.Empty<string>();
+    var isAdmin = currentRoles.Contains("Admin");
+    var isInstructor = currentRoles.Contains("Instructor");
+    var isStudent = currentRoles.Contains("Student");
+    var profileImage = string.IsNullOrWhiteSpace(currentUser?.ProfilePicture)
+        ? Url.Content("~/images/profiles/default-avatar.png")
+        : Url.Content($"~/images/profiles/{currentUser.ProfilePicture}");
+}
 
 <!DOCTYPE html>
 <html lang="en">
@@ -9,122 +20,232 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - EduMaster</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
-    <style>
-        :root { --primary-color: #5e72e4; }
-        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; display: flex; flex-direction: column; min-height: 100vh; }
-        .navbar { background-color: #1a1a1a !important; }
-        main { flex: 1; }
-        .footer { background: #ffffff; border-top: 1px solid #dee2e6; }
-        /* تحسين شكل الـ Navbar Dropdown */
-        .img-profile { object-fit: cover; border: 2px solid var(--primary-color); }
-        .nav-link { transition: color 0.3s ease; }
-        .nav-link:hover { color: var(--primary-color) !important; }
-    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
+    <div class="app-shell">
+        <nav class="navbar navbar-expand-lg topbar navbar-dark sticky-top">
+            <div class="container py-2">
+                <a class="navbar-brand d-flex align-items-center gap-3 fw-bold" asp-controller="Home" asp-action="Index">
+                    <span class="brand-mark">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </span>
+                    <span>EduMaster</span>
+                </a>
 
-    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-3">
-        <div class="container">
-            <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">
-                <i class="fas fa-graduation-cap text-primary me-2"></i>Edu<span class="text-primary">Master</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" asp-controller="Courses" asp-action="Index">Browse Courses</a>
-                    </li>
-                    
-                    @* حتة ماي كورسز اللي ضفناها *@
-                    <li class="nav-item">
-                        <a class="nav-link fw-bold text-white" asp-controller="Enrollment" asp-action="GetMyEnrolledCourses">
-                            <i class="fas fa-play-circle text-primary me-1"></i> My Courses
-                        </a>
-                    </li>
+                <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
 
-                    @if (User.IsInRole("Instructor")) {
-                        <li class="nav-item"><a class="nav-link text-warning fw-bold" asp-controller="Instructor" asp-action="Index">Instructor Panel</a></li>
-                    }
-                </ul>
-                
-                <ul class="navbar-nav ms-auto">
-                    @if (User.Identity.IsAuthenticated)
-                    {
-                        var currentUser = await userManager.GetUserAsync(User);
-                        
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <span class="me-2 d-none d-lg-inline text-white small">@(currentUser?.FirstName ?? User.Identity.Name)</span>
-                                <img class="rounded-circle img-profile" 
-                                     src="~/images/profiles/@(currentUser?.ProfilePicture ?? "default-avatar.png")" 
-                                     width="35" height="35">
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3" aria-labelledby="userDropdown">
-                                <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile"><i class="fas fa-user fa-sm fa-fw me-2 text-gray-400"></i> My Profile</a></li>
-                                <li><a class="dropdown-item" asp-controller="Account" asp-action="EditProfile"><i class="fas fa-cogs fa-sm fa-fw me-2 text-gray-400"></i> Settings</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                        <button type="submit" class="dropdown-item text-danger border-0 bg-transparent w-100 text-start">
-                                            <i class="fas fa-sign-out-alt fa-sm fa-fw me-2"></i> Logout
-                                        </button>
-                                    </form>
-                                </li>
-                            </ul>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto align-items-lg-center gap-lg-2 mt-3 mt-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link nav-pill" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
-                    }
-                    else
-                    {
-                        <li class="nav-item"><a class="nav-link" asp-controller="Account" asp-action="Login">Login</a></li>
-                        <li class="nav-item"><a class="btn btn-primary rounded-pill px-4 ms-lg-2" asp-controller="Account" asp-action="Register">Join for Free</a></li>
-                    }
-                </ul>
-            </div>
-        </div>
-    </nav>
+                        <li class="nav-item">
+                            <a class="nav-link nav-pill" asp-controller="Courses" asp-action="Index">Browse Courses</a>
+                        </li>
 
-    <main role="main" class="py-4">
-        <div class="container">
-            @RenderBody()
-        </div>
-    </main>
+                        @if (isAdmin)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link nav-pill nav-pill-accent" asp-controller="Admin" asp-action="Index">
+                                    <i class="fa-solid fa-shield-halved me-2"></i>Admin Dashboard
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-pill" asp-controller="Admin" asp-action="Users">Users</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-pill" asp-controller="Admin" asp-action="Courses">Course Reviews</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-pill" asp-controller="Admin" asp-action="Categories">Categories</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-pill" asp-controller="Admin" asp-action="Currencies">Currencies</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-pill" asp-controller="Admin" asp-action="Tags">Tags</a>
+                            </li>
+                        }
+                        @if (isInstructor && !isAdmin)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link nav-pill nav-pill-accent" asp-controller="Instructor" asp-action="Index">
+                                    <i class="fa-solid fa-chalkboard-user me-2"></i>Instructor Hub
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-pill" asp-controller="Courses" asp-action="Create">
+                                    <i class="fa-solid fa-circle-plus me-2"></i>Create Course
+                                </a>
+                            </li>
+                        }
+                        @if (isStudent && !isAdmin)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link nav-pill nav-pill-accent" asp-controller="Enrollment" asp-action="GetMyEnrolledCourses">
+                                    <i class="fa-solid fa-play-circle me-2"></i>My Learning
+                                </a>
+                            </li>
+                        }
+                    </ul>
 
-    <footer class="footer py-5 mt-5">
-        <div class="container text-center text-md-start">
-            <div class="row">
-                <div class="col-md-4 mb-4">
-                    <h5 class="text-primary fw-bold">EduMaster</h5>
-                    <p class="text-muted small">The ultimate platform for learning and teaching online. Join thousands of students today.</p>
-                </div>
-                <div class="col-md-4 mb-4 text-center">
-                    <h6 class="fw-bold mb-3">Quick Links</h6>
-                    <ul class="list-unstyled small">
-                        <li><a href="#" class="text-muted text-decoration-none">Privacy Policy</a></li>
-                        <li><a href="#" class="text-muted text-decoration-none">Terms of Service</a></li>
-                        <li><a href="#" class="text-muted text-decoration-none">Contact Us</a></li>
+                    <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2 mt-3 mt-lg-0">
+                        @if (isAuthenticated)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <img src="@profileImage" alt="Profile" class="rounded-circle nav-avatar" />
+                                </a>
+
+                                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-app" aria-labelledby="userDropdown">
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile"><i class="fa-regular fa-user me-2"></i>My Profile</a></li>
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="EditProfile"><i class="fa-solid fa-gear me-2"></i>Edit Profile</a></li>
+
+                                    @if (isAdmin)
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Index"><i class="fa-solid fa-chart-line me-2"></i>Admin Dashboard</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Users"><i class="fa-solid fa-users-gear me-2"></i>Users And Roles</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Courses"><i class="fa-solid fa-clipboard-check me-2"></i>Course Reviews</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Categories"><i class="fa-solid fa-layer-group me-2"></i>Categories</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Currencies"><i class="fa-solid fa-money-bill-wave me-2"></i>Currencies</a></li>
+                                        <li><a class="dropdown-item" asp-controller="Admin" asp-action="Tags"><i class="fa-solid fa-tags me-2"></i>Tags</a></li>
+                                    }
+                                    @if (isStudent && !isAdmin)
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Enrollment" asp-action="GetMyEnrolledCourses"><i class="fa-solid fa-book-open-reader me-2"></i>My Learning</a></li>
+                                    }
+
+                                    @if (isInstructor && !isAdmin)
+                                    {
+                                        <li><a class="dropdown-item" asp-controller="Instructor" asp-action="MyCourses"><i class="fa-solid fa-book me-2"></i>My Courses</a></li>
+                                    }
+
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post">
+                                            <button type="submit" class="dropdown-item text-danger border-0 bg-transparent w-100 text-start">
+                                                <i class="fa-solid fa-right-from-bracket me-2"></i>Logout
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link nav-pill" asp-controller="Account" asp-action="Login">Login</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="btn btn-app-primary" asp-controller="Account" asp-action="Register">Join EduMaster</a>
+                            </li>
+                        }
                     </ul>
                 </div>
-                <div class="col-md-4 mb-4 text-md-end">
-                    <h6 class="fw-bold mb-3">Follow Us</h6>
-                    <div class="h4">
-                        <i class="fab fa-facebook text-muted me-3"></i>
-                        <i class="fab fa-twitter text-muted me-3"></i>
-                        <i class="fab fa-github text-muted"></i>
+            </div>
+        </nav>
+
+        <main class="main-shell">
+            <div class="container">
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success alert-app mb-4">@TempData["Success"]</div>
+                }
+
+                @if (TempData["SuccessMessage"] != null)
+                {
+                    <div class="alert alert-success alert-app mb-4">@TempData["SuccessMessage"]</div>
+                }
+
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger alert-app mb-4">@TempData["Error"]</div>
+                }
+
+                @RenderBody()
+            </div>
+        </main>
+
+        <footer class="footer-shell py-5">
+            <div class="container">
+                <div class="row g-4 align-items-start">
+                    <div class="col-lg-4">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <span class="brand-mark">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </span>
+                            <div>
+                                <h5 class="mb-0 text-white">EduMaster</h5>
+                                <small class="text-white-50">Learn deeply. Teach boldly.</small>
+                            </div>
+                        </div>
+                        <p class="mb-0 text-white-50">A cleaner learning platform for students, instructors, and admins with role-specific workspaces that keep every journey focused.</p>
+                    </div>
+
+                    <div class="col-sm-6 col-lg-2">
+                        <h6 class="text-white mb-3">Explore</h6>
+                        <div class="d-flex flex-column gap-2">
+                            <a asp-controller="Home" asp-action="Index">Home</a>
+                            <a asp-controller="Courses" asp-action="Index">Courses</a>
+                        </div>
+                    </div>
+
+                    <div class="col-sm-6 col-lg-3">
+                        <h6 class="text-white mb-3">Workspace</h6>
+                        <div class="d-flex flex-column gap-2">
+                            @if (isAdmin)
+                            {
+                                <a asp-controller="Admin" asp-action="Index">Admin Dashboard</a>
+                                <a asp-controller="Admin" asp-action="Users">Users And Roles</a>
+                                <a asp-controller="Admin" asp-action="Courses">Course Reviews</a>
+                                <a asp-controller="Admin" asp-action="Categories">Categories</a>
+                                <a asp-controller="Admin" asp-action="Currencies">Currencies</a>
+                                <a asp-controller="Admin" asp-action="Tags">Tags</a>
+                            }
+                            @if (isStudent && !isAdmin)
+                            {
+                                <a asp-controller="Enrollment" asp-action="GetMyEnrolledCourses">My Learning</a>
+                            }
+                            @if (isInstructor && !isAdmin)
+                            {
+                                <a asp-controller="Instructor" asp-action="Index">Instructor Hub</a>
+                            }
+                            @if (!isAuthenticated)
+                            {
+                                <a asp-controller="Account" asp-action="Register">Create Account</a>
+                                <a asp-controller="Account" asp-action="Login">Login</a>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-lg-3 text-lg-end">
+                        <h6 class="text-white mb-3">Built For Roles</h6>
+                        <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+                            <span class="soft-badge bg-transparent text-white border-secondary">Students</span>
+                            <span class="soft-badge bg-transparent text-white border-secondary">Instructors</span>
+                            <span class="soft-badge bg-transparent text-white border-secondary">Admins</span>
+                        </div>
                     </div>
                 </div>
+
+                <hr class="border-secondary my-4" />
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 text-white-50 small">
+                    <span>© 2026 EduMaster. Focused learning for every role.</span>
+                    <span>Online Courses Platform</span>
+                </div>
             </div>
-            <hr>
-            <p class="text-center text-muted small mb-0">© 2026 EduMaster. Built for Production.</p>
-        </div>
-    </footer>
+        </footer>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

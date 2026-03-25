@@ -1,44 +1,100 @@
-﻿@using OnlineCoursesPlatform.Dtos
-@using OnlineCoursesPlatform.Models.Enums
+@using OnlineCoursesPlatform.Dtos
 @model IEnumerable<AdminUserDto>
 
-<table class="table table-bordered table-striped">
-    <thead class="table-dark">
-        <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th style="width:200px;">Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var user in Model)
-        {
-            <tr>
-                <td>@user.Name</td>
-                <td>@user.Email</td>
-                <td>@user.Roles</td>
+@{
+    ViewData["Title"] = "Manage Users";
+    var currentAdminId = ViewBag.CurrentAdminId is int value ? value : 0;
+}
 
-                <td>
-                    <!-- Make Admin -->
-                    @if (!user.Roles.Contains("Admin"))
-                    {
-                        <a asp-action="MakeAdmin"
-                               asp-route-id="@user.Id"
-                               class="btn btn-success btn-sm">
-                            Make Admin
-                        </a>
-                    }
+<section class="page-hero mb-4">
+    <span class="eyebrow mb-3"><i class="fa-solid fa-users-gear"></i>Admin Only</span>
+    <h1 class="section-title mb-2">Manage users and roles.</h1>
+    <p class="section-subtitle mb-0">Every account keeps student access by default. Add instructor access when needed, control admin access, and keep dangerous actions protected.</p>
+</section>
 
-                    <!-- Delete -->
-                    <a asp-action="DeleteUser"
-                           asp-route-id="@user.Id"
-                           class="btn btn-danger btn-sm"
-                           onclick="return confirm('Are you sure you want to delete this user?');">
-                        Delete
-                    </a>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+<section class="table-panel p-4">
+    <div class="table-responsive">
+        <table class="table app-table align-middle">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Current Roles</th>
+                    <th>Role Control</th>
+                    <th class="text-end">Danger Zone</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    var isCurrentAdmin = user.Id == currentAdminId;
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@user.Name</div>
+                            <div class="small text-muted">@user.Email</div>
+                        </td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-2">
+                                @foreach (var role in user.Roles)
+                                {
+                                    <span class="soft-badge">@role</span>
+                                }
+                            </div>
+                        </td>
+                        <td>
+                            <form asp-action="UpdateUserRoles" method="post" class="d-flex flex-wrap align-items-center gap-2">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@user.Id" />
+                                <select name="primaryRole" class="form-select form-select-sm" style="max-width: 160px;">
+                                    @if (user.PrimaryRole == "Student")
+                                    {
+                                        <option value="Student" selected>Student Only</option>
+                                        <option value="Instructor">Student + Instructor</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="Student">Student Only</option>
+                                        <option value="Instructor" selected>Student + Instructor</option>
+                                    }
+                                </select>
+                                <div class="form-check">
+                                    @if (user.IsAdmin)
+                                    {
+                                        <input class="form-check-input" type="checkbox" name="isAdmin" value="true" id="admin-@user.Id" checked="checked" disabled="@(isCurrentAdmin ? "disabled" : null)" />
+                                    }
+                                    else
+                                    {
+                                        <input class="form-check-input" type="checkbox" name="isAdmin" value="true" id="admin-@user.Id" disabled="@(isCurrentAdmin ? "disabled" : null)" />
+                                    }
+                                    <label class="form-check-label small" for="admin-@user.Id">Admin Access</label>
+                                </div>
+                                @if (isCurrentAdmin)
+                                {
+                                    <input type="hidden" name="isAdmin" value="true" />
+                                }
+                                <button type="submit" class="btn btn-sm btn-app-primary">Save Roles</button>
+                            </form>
+                            @if (isCurrentAdmin)
+                            {
+                                <div class="small text-muted mt-2">Your own admin access is locked for safety.</div>
+                            }
+                        </td>
+                        <td class="text-end">
+                            @if (!user.IsAdmin)
+                            {
+                                <form asp-action="DeleteUser" method="post" onsubmit="return confirm('Are you sure you want to delete this user?');" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@user.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">Delete User</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Remove admin access first</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

@@ -4,58 +4,69 @@
     ViewData["Title"] = "Join EduMaster";
 }
 
-<div class="row justify-content-center align-items-center py-5" style="min-height: 80vh;">
-    <div class="col-md-6 col-lg-5">
-        <div class="card shadow-lg border-0 rounded-4">
-            <div class="card-body p-5">
-                <div class="text-center mb-4">
-                    <h2 class="fw-bold text-dark">Create Account</h2>
-                    <p class="text-muted">Join our community of learners and experts</p>
+<div class="row justify-content-center py-4 py-lg-5">
+    <div class="col-xl-10">
+        <div class="auth-shell">
+            <div class="row g-0">
+                <div class="col-lg-5 auth-banner p-4 p-lg-5 d-flex flex-column justify-content-between">
+                    <div>
+                        <span class="eyebrow bg-white text-dark mb-3"><i class="fa-solid fa-user-plus"></i>Register</span>
+                        <h1 class="fw-bold mb-3">Start as a learner or instructor.</h1>
+                        <p class="text-white-50">Create your account once, then the platform shows the tools that fit your role.</p>
+                    </div>
+                    <div class="content-panel p-3 bg-white text-dark">
+                        <div class="fw-bold mb-2">What changes by role?</div>
+                        <ul class="mb-0 ps-3">
+                            <li class="mb-2">Students see enrollment and learning sections.</li>
+                            <li class="mb-2">Instructors get course creation and management tools.</li>
+                            <li>Admins review users and course approvals.</li>
+                        </ul>
+                    </div>
                 </div>
 
-                <form asp-action="Register" method="post">
-                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+                <div class="col-lg-7 p-4 p-lg-5">
+                    <h2 class="fw-bold mb-2">Create Account</h2>
+                    <p class="text-muted mb-4">Fill in your details and choose whether you want to teach.</p>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">First Name</label>
-                            <input asp-for="FirstName" class="form-control rounded-pill px-3" placeholder="Amr" />
-                            <span asp-validation-for="FirstName" class="text-danger small"></span>
+                    <form asp-action="Register" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="FirstName" class="form-label fw-semibold">First Name</label>
+                                <input asp-for="FirstName" class="form-control" />
+                                <span asp-validation-for="FirstName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="LastName" class="form-label fw-semibold">Last Name</label>
+                                <input asp-for="LastName" class="form-control" />
+                                <span asp-validation-for="LastName" class="text-danger small"></span>
+                            </div>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label fw-semibold">Last Name</label>
-                            <input asp-for="LastName" class="form-control rounded-pill px-3" placeholder="Alsaftawi" />
-                            <span asp-validation-for="LastName" class="text-danger small"></span>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label fw-semibold">Email Address</label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
                         </div>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Email Address</label>
-                        <input asp-for="Email" class="form-control rounded-pill px-3" placeholder="name@example.com" />
-                        <span asp-validation-for="Email" class="text-danger small"></span>
-                    </div>
+                        <div class="mb-3">
+                            <label asp-for="Password" class="form-label fw-semibold">Password</label>
+                            <input asp-for="Password" type="password" class="form-control" />
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Password</label>
-                        <input asp-for="Password" type="password" class="form-control rounded-pill px-3" placeholder="••••••••" />
-                        <span asp-validation-for="Password" class="text-danger small"></span>
-                    </div>
+                        <div class="form-check form-switch mb-4">
+                            <input asp-for="IsInstructor" class="form-check-input" type="checkbox" id="instructorSwitch" />
+                            <label class="form-check-label fw-semibold" for="instructorSwitch">I want to register as an instructor</label>
+                        </div>
 
-                    <div class="form-check form-switch mb-4">
-                        <input asp-for="IsInstructor" class="form-check-input" type="checkbox" id="instructorSwitch">
-                        <label class="form-check-label fw-bold text-primary" for="instructorSwitch">
-                            I want to teach (Become an Instructor)
-                        </label>
-                    </div>
+                        <button type="submit" class="btn btn-app-primary w-100">Create My Account</button>
+                    </form>
 
-                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm">
-                        Create My Account
-                    </button>
-                </form>
-
-                <div class="text-center mt-4">
-                    <p class="small text-muted mb-0">Already have an account? 
-                        <a asp-action="Login" class="text-primary fw-bold text-decoration-none">Log In</a>
+                    <p class="text-muted mt-4 mb-0">
+                        Already have an account?
+                        <a asp-action="Login" class="fw-bold text-decoration-none text-primary">Log in</a>
                     </p>
                 </div>
             </div>

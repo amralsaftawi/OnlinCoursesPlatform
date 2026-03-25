@@ -1,0 +1,70 @@
+@model OnlineCoursesPlatform.ViewModels.AdminCategoriesViewModel
+
+@{
+    ViewData["Title"] = "Manage Categories";
+}
+
+<section class="page-hero mb-4">
+    <span class="eyebrow mb-3"><i class="fa-solid fa-layer-group"></i>Admin Only</span>
+    <h1 class="section-title mb-2">Manage course categories.</h1>
+    <p class="section-subtitle mb-0">Categories are shared reference data, so admins should own adding, renaming, and deleting them safely.</p>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <section class="content-panel p-4">
+            <h5 class="fw-bold mb-3">Add Category</h5>
+            <form asp-action="Categories" method="post">
+                @Html.AntiForgeryToken()
+                <div class="mb-3">
+                    <label asp-for="NewCategoryTitle" class="form-label fw-semibold">Title</label>
+                    <input asp-for="NewCategoryTitle" class="form-control" placeholder="Development" />
+                    <span asp-validation-for="NewCategoryTitle" class="text-danger small"></span>
+                </div>
+                <button type="submit" class="btn btn-app-primary w-100">Add Category</button>
+            </form>
+        </section>
+    </div>
+    <div class="col-lg-8">
+        <section class="table-panel p-4">
+            <div class="table-responsive">
+                <table class="table app-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var category in Model.Categories)
+                        {
+                            <tr>
+                                <td>
+                                    <form asp-action="UpdateCategory" method="post" class="d-flex gap-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@category.Id" />
+                                        <input type="text" name="title" value="@category.Title" class="form-control" />
+                                        <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill">Save</button>
+                                    </form>
+                                </td>
+                                <td class="text-end">
+                                    <form asp-action="DeleteCategory" method="post" onsubmit="return confirm('Delete this category?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@category.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">Delete</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

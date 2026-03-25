@@ -1,9 +1,10 @@
+using Microsoft.AspNetCore.Http;
 using OnlineCoursesPlatform.Models.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace OnlineCoursesPlatform.ViewModels
 {
-    public class AddLessonViewModel
+    public class AddLessonViewModel : IValidatableObject
     {
         [Required]
         public int CourseId { get; set; }
@@ -18,13 +19,28 @@ namespace OnlineCoursesPlatform.ViewModels
         [Required(ErrorMessage = "Please select a lesson type.")]
         public LessonType Type { get; set; }
 
-        [Required(ErrorMessage = "Please enter a valid URL for the content.")]
-        [Url(ErrorMessage = "Invalid URL format.")]
-        public string ContentUrl { get; set; }
+        public string? ContentUrl { get; set; }
+
+        public IFormFile? ArticleFile { get; set; }
 
         [Range(1, 1000, ErrorMessage = "Duration must be at least 1 minute.")]
         public int Duration { get; set; }
 
         public bool IsFree { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (Type == LessonType.Article)
+            {
+                if (string.IsNullOrWhiteSpace(ContentUrl) && ArticleFile == null)
+                {
+                    yield return new ValidationResult("Please write the article content or upload an article file.", [nameof(ContentUrl), nameof(ArticleFile)]);
+                }
+            }
+            else if (string.IsNullOrWhiteSpace(ContentUrl))
+            {
+                yield return new ValidationResult("Please provide the lesson file or stream URL.", [nameof(ContentUrl)]);
+            }
+        }
     }
 }

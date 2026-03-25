@@ -1,0 +1,87 @@
+@model OnlineCoursesPlatform.Models.Course
+@using OnlineCoursesPlatform.Models.Enums
+
+@{
+    ViewData["Title"] = "Edit Course";
+}
+
+<section class="page-hero mb-4">
+    <span class="eyebrow mb-3"><i class="fa-solid fa-pen-to-square"></i>Course Editing</span>
+    <h1 class="section-title mb-2">Update your course basics.</h1>
+    <p class="section-subtitle mb-0">Keep the core course information clean here, then manage sections and lessons from the curriculum workspace.</p>
+</section>
+
+<section class="content-panel p-4">
+    <form asp-action="Edit" method="post" enctype="multipart/form-data" class="row g-4">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="InstructorId" />
+        <input type="hidden" asp-for="CategoryId" />
+        <input type="hidden" asp-for="CurrencyId" />
+        <input type="hidden" asp-for="ImageUrl" />
+        <input type="hidden" asp-for="Status" />
+        <input type="hidden" asp-for="TotalDuration" />
+
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="col-md-8">
+            <label asp-for="Title" class="form-label fw-semibold"></label>
+            <input asp-for="Title" class="form-control" />
+            <span asp-validation-for="Title" class="text-danger small"></span>
+        </div>
+
+        <div class="col-md-4">
+            <label asp-for="Price" class="form-label fw-semibold"></label>
+            <input asp-for="Price" class="form-control" />
+            <span asp-validation-for="Price" class="text-danger small"></span>
+        </div>
+
+        <div class="col-12">
+            <label asp-for="Description" class="form-label fw-semibold"></label>
+            <textarea asp-for="Description" class="form-control" rows="6"></textarea>
+            <span asp-validation-for="Description" class="text-danger small"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label asp-for="Language" class="form-label fw-semibold"></label>
+            <input asp-for="Language" class="form-control" />
+            <span asp-validation-for="Language" class="text-danger small"></span>
+        </div>
+
+        <div class="col-md-6">
+            <label asp-for="Level" class="form-label fw-semibold"></label>
+            <select asp-for="Level" class="form-select" asp-items="Html.GetEnumSelectList<CourseLevel>()"></select>
+            <span asp-validation-for="Level" class="text-danger small"></span>
+        </div>
+
+        <div class="col-12">
+            <label class="form-label fw-semibold">Course Image</label>
+            <div class="row g-3 align-items-center">
+                <div class="col-md-3">
+                    <img src="@(string.IsNullOrWhiteSpace(Model.ImageUrl) ? "/images/default-course.jpg" : Model.ImageUrl)" class="img-fluid rounded-4 border" style="max-height: 180px; object-fit: cover;" alt="@Model.Title" />
+                </div>
+                <div class="col-md-9">
+                    <input type="file" name="imageFile" class="form-control" accept="image/*" />
+                    <div class="form-text">Upload a new image to replace the current one, or add one now if the course still uses the default image.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12">
+            <div class="metric-card p-3">
+                <div class="small text-muted mb-2 text-uppercase">Managed By Admin</div>
+                <div class="fw-semibold">Category, currency, and approval status are controlled from the platform workflow.</div>
+            </div>
+        </div>
+
+        <div class="col-12 d-flex flex-wrap gap-3">
+            <button type="submit" class="btn btn-app-primary">Save Changes</button>
+            <a asp-controller="Lessons" asp-action="ManageContent" asp-route-courseId="@Model.Id" class="btn btn-outline-dark">Manage Curriculum</a>
+            <a asp-controller="Instructor" asp-action="MyCourses" class="btn btn-outline-secondary">Back To My Courses</a>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

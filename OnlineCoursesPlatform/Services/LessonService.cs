@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using OnlinCoursesPlatform.Data;
 using OnlineCoursesPlatform.Models;
 using OnlineCoursesPlatform.Repositories.Interface;
 using OnlineCoursesPlatform.Services.Interfaces;
@@ -12,11 +13,13 @@ namespace OnlineCoursesPlatform.Services
     {
         private readonly IRepository<Section> _sectionRepository;
         private readonly IRepository<Lesson> _lessonRepository;
+        private readonly AppDbContext _context;
 
-        public LessonService(IRepository<Section> sectionRepository, IRepository<Lesson> lessonRepository)
+        public LessonService(IRepository<Section> sectionRepository, IRepository<Lesson> lessonRepository, AppDbContext context)
         {
             _sectionRepository = sectionRepository;
             _lessonRepository = lessonRepository;
+            _context = context;
         }
 
         public async Task<Section> AddSectionAsync(int courseId, string title)
@@ -41,6 +44,14 @@ namespace OnlineCoursesPlatform.Services
 
         public async Task<Lesson> AddLessonAsync(int sectionId, string title, Models.Enums.LessonType type, string contentUrl, int duration, bool isFree)
         {
+            var courseId = await _context.Sections
+                .Where(s => s.Id == sectionId)
+                .Select(s => s.CourseId)
+                .FirstOrDefaultAsync();
+
+            if (courseId == 0)
+                throw new InvalidOperationException("Section not found.");
+
             // Calculate the next OrderIndex for the lesson in the section
             var existingLessonsCount = await _lessonRepository.GetQueryable()
                 .Where(l => l.SectionId == sectionId)
@@ -59,6 +70,7 @@ namespace OnlineCoursesPlatform.Services
 
             var createdLesson = await _lessonRepository.AddAsync(lesson);
             await _lessonRepository.SaveAsync();
+            await RecalculateCourseDurationAsync(courseId);
 
             return createdLesson;
         }
@@ -91,18 +103,42 @@ namespace OnlineCoursesPlatform.Services
 
             var updatedLesson = await _lessonRepository.UpdateAsync(lesson);
             await _lessonRepository.SaveAsync();
+            var courseId = await _context.Sections.Where(s => s.Id == lesson.SectionId).Select(s => s.CourseId).FirstAsync();
+            await RecalculateCourseDurationAsync(courseId);
 
             return updatedLesson;
         }
 
         public async Task<bool> DeleteLessonAsync(int lessonId)
         {
+            var courseId = await _context.Lessons
+                .Where(l => l.Id == lessonId)
+                .Select(l => l.Section.CourseId)
+                .FirstOrDefaultAsync();
+
             var result = await _lessonRepository.DeleteAsync(lessonId);
             if (result)
             {
                 await _lessonRepository.SaveAsync();
+                if (courseId > 0)
+                {
+                    await RecalculateCourseDurationAsync(courseId);
+                }
             }
             return result;
+        }
+
+        public async Task RecalculateCourseDurationAsync(int courseId)
+        {
+            var course = await _context.Courses.FirstOrDefaultAsync(c => c.Id == courseId);
+            if (course == null)
+                return;
+
+            course.TotalDuration = await _context.Lessons
+                .Where(l => l.Section.CourseId == courseId)
+                .SumAsync(l => (int?)l.Duration) ?? 0;
+
+            await _context.SaveChangesAsync();
         }
     }
 }

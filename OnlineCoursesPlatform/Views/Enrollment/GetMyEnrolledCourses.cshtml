@@ -1,110 +1,60 @@
-@model IEnumerable<dynamic>
+@model IEnumerable<OnlineCoursesPlatform.ViewModels.EnrolledCourseViewModel>
 
 @{
-    ViewData["Title"] = "My Learning Journey";
+    ViewData["Title"] = "My Learning";
 }
 
-<style>
-    body {
-        background-color: #f8f9fa;
-    }
-    .my-courses-header {
-        background: linear-gradient(135deg, #1a1a1a 0%, #2d3436 100%);
-        padding: 60px 0;
-        border-radius: 0 0 30px 30px;
-        margin-top: -24px;
-        color: white;
-    }
-    .course-card {
-        border: none;
-        border-radius: 20px;
-        transition: transform 0.3s, box-shadow 0.3s;
-        overflow: hidden;
-        background: #fff;
-    }
-    .course-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
-    }
-    .progress {
-        height: 8px;
-        border-radius: 10px;
-        background-color: #e9ecef;
-    }
-    .progress-bar {
-        background: linear-gradient(90deg, #0d6efd, #0dcaf0);
-    }
-    .continue-btn {
-        border-radius: 50px;
-        font-weight: 600;
-        padding: 8px 20px;
-    }
-    .empty-state {
-        padding: 100px 0;
-        text-align: center;
-    }
-</style>
+<section class="page-hero mb-4">
+    <span class="eyebrow mb-3"><i class="fa-solid fa-book-open-reader"></i>Student Workspace</span>
+    <h1 class="section-title mb-2">Continue your enrolled courses.</h1>
+    <p class="section-subtitle mb-0">Track progress and jump back into the learning experience with fewer distractions.</p>
+</section>
 
-<header class="my-courses-header text-center mb-5 shadow-sm">
-    <div class="container">
-        <h1 class="fw-bold display-5">My <span class="text-primary">Courses</span></h1>
-        <p class="lead text-secondary">Track your progress and continue where you left off</p>
-    </div>
-</header>
-
-<div class="container mb-5">
-    <div class="row g-4">
-        @if (Model != null && Model.Any())
+<section class="row g-4">
+    @if (Model != null && Model.Any())
+    {
+        @foreach (var item in Model)
         {
-            @foreach (var item in Model)
-            {
-                <div class="col-md-6 col-lg-4">
-                    <div class="card course-card shadow-sm h-100">
-                        <div class="position-relative">
-                            <img src="@item.ImageUrl" class="card-img-top" alt="@item.Title" style="height: 200px; object-fit: cover;">
-                            <div class="position-absolute bottom-0 start-0 p-3 w-100" style="background: linear-gradient(transparent, rgba(0,0,0,0.7));">
-                                <span class="badge bg-primary rounded-pill">Enrolled</span>
-                            </div>
+            <div class="col-md-6 col-xl-4">
+                <div class="course-card h-100 overflow-hidden">
+                    <img src="@(string.IsNullOrWhiteSpace((string?)item.ImageUrl) ? "/images/default-course.jpg" : item.ImageUrl)" class="w-100" style="height: 220px; object-fit: cover;" alt="@item.Title" />
+                    <div class="p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="soft-badge text-success"><i class="fa-solid fa-circle-check"></i>Enrolled</span>
+                            <span class="text-muted small">@item.EnrolledAt.ToString("dd MMM yyyy")</span>
                         </div>
-                        
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="card-title fw-bold mb-3">@item.Title</h5>
-                            
-                            <div class="mt-auto">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <small class="text-muted">Progress</small>
-                                    <small class="fw-bold text-primary">@item.ProgressPercentage%</small>
-                                </div>
-                                <div class="progress mb-4">
-                                    <div class="progress-bar" role="progressbar" style="width: @item.ProgressPercentage%" 
-                                         aria-valuenow="@item.ProgressPercentage" aria-valuemin="0" aria-valuemax="100"></div>
-                                </div>
-                                
-                                @* اللينك ده هيودي الطالب لصفحة المحتوى (تأكد من اسم الـ Action عندك) *@
-                                <a asp-controller="Courses" asp-action="Details" asp-route-id="@item.CourseId" 
-                                   class="btn btn-primary continue-btn w-100">
-                                    <i class="fas fa-play me-2"></i> Continue Learning
-                                </a>
-                            </div>
+                        <h5 class="fw-bold mb-2">@item.Title</h5>
+                        <div class="text-muted small mb-3">By @item.InstructorName</div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <small class="text-muted">Progress</small>
+                            <small class="fw-bold text-primary">@item.ProgressPercentage%</small>
                         </div>
+                        <div class="progress mb-4" style="height: 10px;">
+                            <div class="progress-bar" role="progressbar" style="width: @item.ProgressPercentage%" aria-valuenow="@item.ProgressPercentage" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        @if (item.FirstLessonId != null)
+                        {
+                            <a asp-controller="Learning" asp-action="Details" asp-route-id="@item.FirstLessonId" class="btn btn-app-primary w-100 mb-2">Continue Learning</a>
+                        }
+                        else
+                        {
+                            <a asp-controller="Courses" asp-action="Details" asp-route-id="@item.CourseId" class="btn btn-app-primary w-100 mb-2">Open Course</a>
+                        }
+                        <a asp-controller="Courses" asp-action="Details" asp-route-id="@item.CourseId" class="btn btn-link text-decoration-none w-100">Course Details</a>
                     </div>
-                </div>
-            }
-        }
-        else
-        {
-            <div class="col-12">
-                <div class="empty-state animate__animated animate__fadeIn">
-                    <div class="mb-4">
-                        <i class="fas fa-book-reader display-1 text-muted opacity-25"></i>
-                    </div>
-                    <h3 class="fw-bold">No courses found!</h3>
-                    <p class="text-muted">You haven't enrolled in any courses yet. Start your journey today.</p>
-                    <a asp-controller="Courses" asp-action="Index" class="btn btn-primary btn-lg px-5 mt-3 rounded-pill shadow">
-                        Browse Courses
-                    </a>
                 </div>
             </div>
         }
-    </div>
-</div>
+    }
+    else
+    {
+        <div class="col-12">
+            <div class="empty-state">
+                <i class="fa-solid fa-book fs-1 text-muted mb-3"></i>
+                <h4 class="fw-bold">No enrolled courses yet</h4>
+                <p class="text-muted">Browse the catalog and enroll in your first course to begin learning.</p>
+                <a asp-controller="Courses" asp-action="Index" class="btn btn-app-primary">Browse Courses</a>
+            </div>
+        </div>
+    }
+</section>

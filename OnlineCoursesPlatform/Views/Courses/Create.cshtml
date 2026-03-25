@@ -1,228 +1,124 @@
 @model OnlineCoursesPlatform.ViewModels.CreateCourseViewModel
 
 @{
-    ViewData["Title"] = "Create New Course";
+    ViewData["Title"] = "Create Course";
+    var hasCategories = Model.CategoriesList.Any();
+    var hasCurrencies = Model.CurrenciesList.Any();
 }
 
-<div class="container my-5">
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card shadow-lg">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">📚 Create New Course</h4>
+<section class="page-hero mb-4">
+    <span class="eyebrow mb-3"><i class="fa-solid fa-circle-plus"></i>Instructor Only</span>
+    <h1 class="section-title mb-2">Create the course shell, then build the curriculum.</h1>
+    <p class="section-subtitle mb-0">Start with the core course info, then jump straight into sections and lessons while admins keep control of approval.</p>
+</section>
+
+<section class="content-panel p-4 p-lg-5">
+    @if (!hasCategories || !hasCurrencies)
+    {
+        <div class="alert alert-warning alert-app">
+            Course creation needs admin-managed reference data first.
+            @if (!hasCategories)
+            {
+                <span> No categories are available yet.</span>
+            }
+            @if (!hasCurrencies)
+            {
+                <span> No currencies are available yet.</span>
+            }
+        </div>
+    }
+
+    <form asp-action="Create" method="post" enctype="multipart/form-data" novalidate>
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+        <div class="row g-4">
+            <div class="col-lg-8">
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label fw-semibold">Course Title</label>
+                    <input asp-for="Title" class="form-control" placeholder="Build a production-ready ASP.NET course" />
+                    <span asp-validation-for="Title" class="text-danger small"></span>
                 </div>
 
-                <div class="card-body p-4">
-                    <!-- Error Message -->
-                    @if (ViewBag.Error != null)
-                    {
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <strong>Error!</strong> @ViewBag.Error
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    }
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label fw-semibold">Description</label>
+                    <textarea asp-for="Description" class="form-control" rows="6" placeholder="Describe who this course is for, what learners will build, and the outcomes they can expect."></textarea>
+                    <span asp-validation-for="Description" class="text-danger small"></span>
+                </div>
 
-                    <!-- Success Message -->
-                    @if (TempData["Success"] != null)
-                    {
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <strong>Success!</strong> @TempData["Success"]
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    }
+                <div class="mb-3">
+                    <label asp-for="SelectedTagIds" class="form-label fw-semibold">Tags</label>
+                    <select asp-for="SelectedTagIds" class="form-select" asp-items="Model.TagsList" multiple style="min-height: 140px;"></select>
+                    <small class="text-muted">Choose only the tags that genuinely describe the course. Tags are managed centrally by admins.</small>
+                </div>
 
-                    <form asp-action="Create" method="post" enctype="multipart/form-data" novalidate>
-                        @Html.AntiForgeryToken()
-                        
-                        <!-- Global Validation Summary -->
-                        <div asp-validation-summary="All" class="alert alert-danger"
-                             style="display: @(ViewData.ModelState.IsValid ? "none" : "block")"></div>
+                <div class="mb-3">
+                    <label asp-for="ImageFile" class="form-label fw-semibold">Course Image</label>
+                    <input asp-for="ImageFile" type="file" class="form-control" accept="image/*" />
+                    <span asp-validation-for="ImageFile" class="text-danger small"></span>
+                </div>
+            </div>
 
-                        <!-- Title -->
-                        <div class="mb-3">
-                            <label asp-for="Title" class="form-label fw-bold">Course Title</label>
-                            <input type="text" asp-for="Title" class="form-control" placeholder="Enter course title" />
-                            <span asp-validation-for="Title" class="text-danger small"></span>
-                        </div>
+            <div class="col-lg-4">
+                <div class="metric-card p-4 mb-4">
+                    <h5 class="fw-bold mb-3">Publishing Logic</h5>
+                    <ul class="text-muted mb-0 ps-3">
+                        <li class="mb-2">New courses are always submitted as `Pending`.</li>
+                        <li class="mb-2">Only admins can approve or reject publication.</li>
+                        <li>Students see only approved courses in the public catalog.</li>
+                    </ul>
+                </div>
 
-                        <!-- Description -->
-                        <div class="mb-3">
-                            <label asp-for="Description" class="form-label fw-bold">Description</label>
-                            <textarea asp-for="Description" class="form-control" rows="4"
-                                      placeholder="Enter detailed course description"></textarea>
-                            <span asp-validation-for="Description" class="text-danger small"></span>
-                        </div>
+                <div class="mb-3">
+                    <label asp-for="CategoryId" class="form-label fw-semibold">Category</label>
+                    <select asp-for="CategoryId" class="form-select" asp-items="Model.CategoriesList" disabled="@(!hasCategories)">
+                        <option value="">Select Category</option>
+                    </select>
+                    <span asp-validation-for="CategoryId" class="text-danger small"></span>
+                </div>
 
-                        <!-- Price and Currency -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label asp-for="Price" class="form-label fw-bold">Price</label>
-                                    <input type="number" asp-for="Price" class="form-control" placeholder="0.00"
-                                           step="0.01" />
-                                    <span asp-validation-for="Price" class="text-danger small"></span>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label asp-for="CurrencyId" class="form-label fw-bold">Currency</label>
-                                    <select asp-for="CurrencyId" class="form-control" asp-items="Model.CurrenciesList">
-                                        <option value="">-- Select Currency --</option>
-                                    </select>
-                                    <span asp-validation-for="CurrencyId" class="text-danger small"></span>
-                                </div>
-                            </div>
-                        </div>
+                <div class="mb-3">
+                    <label asp-for="CurrencyId" class="form-label fw-semibold">Currency</label>
+                    <select asp-for="CurrencyId" class="form-select" asp-items="Model.CurrenciesList" disabled="@(!hasCurrencies)">
+                        <option value="">Select Currency</option>
+                    </select>
+                    <span asp-validation-for="CurrencyId" class="text-danger small"></span>
+                </div>
 
-                        <!-- Image Upload with Preview -->
-                        <div class="mb-3">
-                            <label asp-for="ImageFile" class="form-label fw-bold">Course Image</label>
-                            <input type="file" asp-for="ImageFile" class="form-control" accept="image/*"
-                                   id="imageFileInput" onchange="previewLocalImage(event)" />
-                            <small class="text-muted">Select an image from your computer to use as the course
-                                thumbnail</small>
-                                <span asp-validation-for="ImageFile" class="text-danger small d-block"></span>
-                            
-                                <!-- Image Preview -->
-                                <div id="imagePreview" class="mt-3" style="display:none;">
-                                    <img id="previewImg" src="" alt="Course Preview"
-                                         style="max-width: 300px; max-height: 300px; object-fit: cover; border-radius: 8px;" />
-                                </div>
-                            </div>
+                <div class="mb-3">
+                    <label asp-for="Price" class="form-label fw-semibold">Price</label>
+                    <input asp-for="Price" type="number" step="0.01" class="form-control" />
+                    <span asp-validation-for="Price" class="text-danger small"></span>
+                </div>
 
-                            <script>
-                                                        function previewLocalImage(event) {
-                                                            const file = event.target.files[0];
-                                                            const preview = document.getElementById('imagePreview');
-                                                            const img = document.getElementById('previewImg');
+                <div class="mb-3">
+                    <label asp-for="Level" class="form-label fw-semibold">Level</label>
+                    <select asp-for="Level" class="form-select" asp-items="Html.GetEnumSelectList<OnlineCoursesPlatform.Models.Enums.CourseLevel>()"></select>
+                    <span asp-validation-for="Level" class="text-danger small"></span>
+                </div>
 
-                                                            if (file) {
-                                                                const reader = new FileReader();
-                                                                reader.onload = function (e) {
-                                                                    img.src = e.target.result;
-                                                                    preview.style.display = 'block';
-                                                                };
-                                                                reader.readAsDataURL(file);
-                                                            } else {
-                                                                preview.style.display = 'none';
-                                                                img.src = '';
-                                                            }
-                                                        }
-                            </script>
+                <div class="mb-3">
+                    <label asp-for="Language" class="form-label fw-semibold">Language</label>
+                    <input asp-for="Language" class="form-control" />
+                    <span asp-validation-for="Language" class="text-danger small"></span>
+                </div>
 
-                            <!-- Category and Level -->
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label asp-for="CategoryId" class="form-label fw-bold">Category</label>
-                                        <select asp-for="CategoryId" class="form-control" asp-items="Model.CategoriesList">
-                                            <option value="">-- Select Category --</option>
-                                        </select>
-                                        <span asp-validation-for="CategoryId" class="text-danger small"></span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label asp-for="Level" class="form-label fw-bold">Course Level</label>
-                                        <select asp-for="Level" class="form-control"
-                                                asp-items="Html.GetEnumSelectList<OnlineCoursesPlatform.Models.Enums.CourseLevel>()">
-                                        </select>
-                                        <span asp-validation-for="Level" class="text-danger small"></span>
-                                    </div>
-                                </div>
-                                
-                                <!-- Tags Multi-Select -->
-                                <div class="col-md-12 mt-3">
-                                    <div class="mb-3">
-                                        <label asp-for="SelectedTagIds" class="form-label fw-bold">Tags</label>
-                                        <select asp-for="SelectedTagIds" class="form-control" asp-items="Model.TagsList" multiple="multiple" style="min-height: 100px;">
-                                        </select>
-                                        <small class="text-muted">Hold down the Ctrl (Windows) or Command (Mac) button to select multiple tags.</small>
-                                        <span asp-validation-for="SelectedTagIds" class="text-danger small d-block"></span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Language and Duration -->
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label asp-for="Language" class="form-label fw-bold">Language</label>
-                                        <input type="text" asp-for="Language" class="form-control" value="English" />
-                                        <span asp-validation-for="Language" class="text-danger small"></span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label asp-for="TotalDuration" class="form-label fw-bold">Total Duration
-                                            (hours)</label>
-                                            <input type="number" asp-for="TotalDuration" class="form-control"
-                                                   placeholder="Number of hours" />
-                                            <span asp-validation-for="TotalDuration" class="text-danger small"></span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Status -->
-                                <div class="mb-3">
-                                    <label asp-for="Status" class="form-label fw-bold">Status</label>
-                                    <select asp-for="Status" class="form-control"
-                                            asp-items="Html.GetEnumSelectList<OnlineCoursesPlatform.Models.Enums.CourseStatus>()">
-                                    </select>
-                                    <small class="text-muted">
-                                        Select "Draft" to work on it later, or "Published" to make it available immediately.
-                                    </small>
-                                    <span asp-validation-for="Status" class="text-danger small d-block"></span>
-                                </div>
-
-                                <!-- Form Actions -->
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-primary btn-lg">
-                                        <i class="bi bi-check-circle"></i> Create Course
-                                    </button>
-                                    <a asp-action="Index" class="btn btn-secondary btn-lg">
-                                        <i class="bi bi-arrow-left"></i> Cancel
-                                    </a>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                <div class="metric-card p-3 mb-4">
+                    <div class="fw-bold mb-2">Duration Handling</div>
+                    <div class="text-muted small">You do not enter total course duration here. It is recalculated automatically from lesson durations as you build the curriculum.</div>
                 </div>
             </div>
         </div>
 
-        <!-- Include validation scripts -->
-        @section Scripts {
-            @{
-                await Html.RenderPartialAsync("_ValidationScriptsPartial");
-            }
-        }
+        <div class="d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-app-primary" disabled="@(!hasCategories || !hasCurrencies)">Save And Build Curriculum</button>
+            <a asp-action="Index" class="btn btn-app-secondary-dark">Cancel</a>
+        </div>
+    </form>
+</section>
 
-        <style>
-            .card {
-                border: none;
-                border-radius: 12px;
-                margin-top: 2rem;
-            }
-
-            .card-header {
-                border-radius: 12px 12px 0 0;
-                padding: 1.5rem;
-            }
-
-            .form-label {
-                color: #333;
-                margin-bottom: 0.5rem;
-            }
-
-            .form-control:focus {
-                border-color: #0d6efd;
-                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-            }
-
-            .btn-lg {
-                padding: 0.75rem 1.5rem;
-                font-size: 1.1rem;
-                border-radius: 8px;
-            }
-        </style>
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

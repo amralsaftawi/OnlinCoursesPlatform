@@ -1,81 +1,79 @@
 @model OnlineCoursesPlatform.Models.Course
 
-<div class="container mt-5">
-    <div class="card shadow-sm border-0" style="border-radius: 15px;">
-        <div class="card-body text-center p-5">
-            <div class="mb-4">
-                <i class="bi bi-shield-check display-1 text-success"></i>
-            </div>
-            <h2 class="fw-bold mb-3">Confirm Your Enrollment</h2>
-            <p class="text-muted fs-5">You are one step away from starting your journey in:</p>
-            <h3 class="text-primary mb-4">@Model.Title</h3>
-            
-            <div class="bg-light p-3 rounded mb-4">
-                <span class="text-muted">Total Price:</span>
-                <span class="fw-bold fs-4">@Model.Price @Model.CurrencyId</span>
-            </div>
+@{
+    ViewData["Title"] = "Confirm Enrollment";
+}
 
-            <form id="enrollForm">
-                <input type="hidden" id="courseId" value="@Model.Id" />
-                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-                    <button type="button" onclick="confirmEnroll()" class="btn btn-success btn-lg px-5 fw-bold shadow-sm">
-                        Confirm & Start Learning
-                    </button>
-                    <a href="/Courses/Details/@Model.Id" class="btn btn-outline-secondary btn-lg px-4">
-                        Cancel
-                    </a>
-                </div>
-            </form>
+<section class="page-hero mb-4">
+    <span class="eyebrow mb-3"><i class="fa-solid fa-badge-check"></i>Student Checkout</span>
+    <h1 class="section-title mb-2">Confirm your enrollment.</h1>
+    <p class="section-subtitle mb-0">You are one step away from unlocking this course in your learning workspace.</p>
+</section>
+
+<section class="content-panel p-4 p-lg-5 text-center">
+    <div class="mx-auto" style="max-width: 680px;">
+        <img src="@(string.IsNullOrWhiteSpace(Model.ImageUrl) ? "/images/default-course.jpg" : Model.ImageUrl)" alt="@Model.Title" class="w-100 rounded-4 shadow-sm mb-4" style="max-height: 280px; object-fit: cover;" />
+        <h2 class="fw-bold mb-2">@Model.Title</h2>
+        <p class="text-muted mb-4">Once enrolled, this course appears in your learning dashboard and your progress starts from there.</p>
+
+        <div class="metric-card p-4 mb-4">
+            <div class="text-muted small text-uppercase mb-2">Price</div>
+            <div class="metric-value">@Model.Currency.Symbol@Model.Price</div>
+            <div class="text-muted mt-2">Currency: @Model.Currency.Name (@Model.Currency.Code)</div>
         </div>
+
+        <form id="enrollForm">
+            <input type="hidden" id="courseId" value="@Model.Id" />
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <button id="confirmEnrollButton" type="button" onclick="confirmEnroll()" class="btn btn-app-primary">
+                    Confirm & Start Learning
+                </button>
+                <a asp-controller="Courses" asp-action="Details" asp-route-id="@Model.Id" class="btn btn-app-secondary-dark">Cancel</a>
+            </div>
+        </form>
     </div>
-</div>
+</section>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        async function confirmEnroll() {
+            const id = document.getElementById('courseId').value;
+            const button = document.getElementById('confirmEnrollButton');
 
-<script>
-    async function confirmEnroll() {
-        const id = document.getElementById('courseId').value;
-        const button = event.target;
-        
-        // تغيير شكل الزرار أثناء التحميل
-        button.disabled = true;
-        button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
 
-        try {
-            const response = await fetch('/api/Enrollment/enroll', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ courseId: parseInt(id) })
-            });
-
-            if (response.ok) {
-                // رسالة النجاح الاحترافية
-                Swal.fire({
-                    title: 'Congratulations!',
-                    text: 'You have successfully enrolled in the course.',
-                    icon: 'success',
-                    showCancelButton: true,
-                    confirmButtonText: 'Start Learning Now', // يوديه المشغل
-                    cancelButtonText: 'Back to Course Details', // يرجعه لصفحة الكورس
-                    confirmButtonColor: '#a435f0', // نفس لون يوديمي اللي في الـ CSS عندك
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = '/Learning/Player/' + id;
-                    } else {
-                        window.location.href = '/Courses/Details/' + id + '?enrolled=true';
-                    }
+            try {
+                const response = await fetch('/Enrollment/Enroll', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ courseId: parseInt(id) })
                 });
-            } else {
-                const error = await response.json();
-                Swal.fire('Enrollment Failed', error.message || 'Something went wrong', 'error');
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Something went wrong.');
+                }
+
+                await Swal.fire({
+                    title: 'Enrollment complete',
+                    text: 'Your course is now available in My Learning.',
+                    icon: 'success',
+                    confirmButtonText: data.firstLessonId ? 'Go to first lesson' : 'Open course page'
+                });
+
+                if (data.firstLessonId) {
+                    window.location.href = '/Learning/Details/' + data.firstLessonId;
+                } else {
+                    window.location.href = '/Courses/Details/' + id;
+                }
+            } catch (error) {
+                await Swal.fire('Enrollment failed', error.message, 'error');
                 button.disabled = false;
                 button.innerHTML = 'Confirm & Start Learning';
             }
-        } catch (err) {
-            Swal.fire('Error', 'Connection error. Please try again.', 'error');
-            button.disabled = false;
-            button.innerHTML = 'Confirm & Start Learning';
         }
-    }
-</script>
+    </script>
+}

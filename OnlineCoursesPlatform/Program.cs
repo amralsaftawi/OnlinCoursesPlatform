@@ -22,6 +22,7 @@ builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IInstructorService, InstructorService>();
+builder.Services.AddScoped<ILearningService, LearningService>();
 builder.Services.AddScoped<ILessonService, LessonService>();
 
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
@@ -64,7 +65,7 @@ using (var scope = app.Services.CreateScope())
     }
 
     // 🎯 Create Admin لو مش موجود
-    var admin = await userManager.FindByNameAsync("admin");
+    var admin = await userManager.FindByEmailAsync("admin@test.com") ?? await userManager.FindByNameAsync("admin");
 
     if (admin == null)
     {
@@ -92,6 +93,59 @@ using (var scope = app.Services.CreateScope())
 
         await context.SaveChangesAsync();
     }
+
+    if (!await userManager.IsInRoleAsync(admin, "Admin"))
+    {
+        await userManager.AddToRoleAsync(admin, "Admin");
+    }
+
+    if (!await userManager.IsInRoleAsync(admin, "Student"))
+    {
+        await userManager.AddToRoleAsync(admin, "Student");
+    }
+
+    var allUsers = await userManager.Users.ToListAsync();
+    foreach (var platformUser in allUsers)
+    {
+        var existingRoles = await userManager.GetRolesAsync(platformUser);
+        if (!existingRoles.Contains("Student"))
+        {
+            await userManager.AddToRoleAsync(platformUser, "Student");
+        }
+    }
+
+    if (!context.Categories.Any())
+    {
+        context.Categories.AddRange(
+            new Category { Title = "Development" },
+            new Category { Title = "Business" },
+            new Category { Title = "Design" },
+            new Category { Title = "Marketing" }
+        );
+    }
+
+    if (!context.Currencies.Any())
+    {
+        context.Currencies.AddRange(
+            new Currency { Name = "Egyptian Pound", Code = "EGP", Symbol = "E£" },
+            new Currency { Name = "US Dollar", Code = "USD", Symbol = "$" },
+            new Currency { Name = "Euro", Code = "EUR", Symbol = "€" }
+        );
+    }
+
+    if (!context.Tags.Any())
+    {
+        context.Tags.AddRange(
+            new Tag { Name = "backend" },
+            new Tag { Name = "frontend" },
+            new Tag { Name = "beginner" },
+            new Tag { Name = "advanced" },
+            new Tag { Name = "api" },
+            new Tag { Name = "database" }
+        );
+    }
+
+    await context.SaveChangesAsync();
 }
 
 
@@ -116,22 +170,4 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 
-
-
-// Seeding Roles
-using (var scope = app.Services.CreateScope())
-{
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
-
-    // هنجيب كل الأسماء اللي جوه الـ Enum بتاعك
-    var roles = Enum.GetNames(typeof(UserRole));
-
-    foreach (var role in roles)
-    {
-        if (!await roleManager.RoleExistsAsync(role))
-        {
-            await roleManager.CreateAsync(new IdentityRole<int> { Name = role });
-        }
-    }
-}
 app.Run();

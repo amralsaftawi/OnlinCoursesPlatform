@@ -1,64 +1,106 @@
-﻿@using OnlineCoursesPlatform.Dtos
+@using OnlineCoursesPlatform.Dtos
 @model IEnumerable<AdminCourseDto>
 
-<h2 class="mb-4">Courses Review</h2>
+@{
+    ViewData["Title"] = "Course Reviews";
+}
 
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>Title</th>
-            <th>Status</th>
-            <th style="width:220px;">Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var course in Model)
-        {
-            <tr>
-                <td>@course.Title</td>
+<section class="page-hero mb-4">
+    <span class="eyebrow mb-3"><i class="fa-solid fa-clipboard-check"></i>Admin Only</span>
+    <h1 class="section-title mb-2">Review and control platform courses.</h1>
+    <p class="section-subtitle mb-0">Approve, reject, return to pending, or remove courses while seeing the instructor and curriculum footprint.</p>
+</section>
 
-                <td>
-                    @if (course.Status == "Pending")
-                    {
-                        <span class="badge bg-warning text-dark">Pending</span>
-                    }
-                    else if (course.Status == "Approved")
-                    {
-                        <span class="badge bg-success">Approved</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-danger">Rejected</span>
-                    }
-                </td>
+<section class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="metric-card p-4 h-100">
+            <div class="text-muted small mb-2">Pending</div>
+            <div class="display-6 fw-bold">@Model.Count(course => course.Status == "Pending")</div>
+            <div class="small text-muted">Waiting for a publish decision.</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="metric-card p-4 h-100">
+            <div class="text-muted small mb-2">Approved</div>
+            <div class="display-6 fw-bold">@Model.Count(course => course.Status == "Approved")</div>
+            <div class="small text-muted">Live for students in the catalog.</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="metric-card p-4 h-100">
+            <div class="text-muted small mb-2">Rejected</div>
+            <div class="display-6 fw-bold">@Model.Count(course => course.Status == "Rejected")</div>
+            <div class="small text-muted">Returned to the instructor for changes.</div>
+        </div>
+    </div>
+</section>
 
-                <td>
-                    @if (course.Status == "Pending")
-                    {
-                        <!-- Approve -->
-                        <form asp-action="Approve" method="post" style="display:inline;">
-                            <input type="hidden" name="id" value="@course.Id" />
-                            <button type="submit" class="btn btn-success btn-sm">
-                                Approve
-                            </button>
-                        </form>
+<section class="table-panel p-4">
+    <div class="table-responsive">
+        <table class="table app-table align-middle">
+            <thead>
+                <tr>
+                    <th>Course</th>
+                    <th>Instructor</th>
+                    <th>Status</th>
+                    <th>Curriculum</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var course in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="fw-semibold">@course.Title</div>
+                            <div class="small text-muted">@course.CategoryName • @course.CurrencySymbol@course.Price</div>
+                        </td>
+                        <td>@course.InstructorName</td>
+                        <td>
+                            <span class="soft-badge @(course.Status == "Approved" ? "text-success" : course.Status == "Pending" ? "text-warning" : "text-danger")">@course.Status</span>
+                        </td>
+                        <td class="small text-muted">@course.SectionCount sections • @course.LessonCount lessons • @course.TotalDuration min</td>
+                        <td class="text-end">
+                            <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                <a asp-controller="Courses" asp-action="Details" asp-route-id="@course.Id" class="btn btn-sm btn-outline-dark rounded-pill">Preview</a>
 
-                        <!-- Reject -->
-                        <form asp-action="Reject" method="post" style="display:inline;">
-                            <input type="hidden" name="id" value="@course.Id" />
-                            <button type="submit"
-                                    class="btn btn-danger btn-sm"
-                                    onclick="return confirm('Are you sure you want to reject this course?');">
-                                Reject
-                            </button>
-                        </form>
-                    }
-                    else
-                    {
-                        <span class="text-muted">No actions</span>
-                    }
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+                                @if (course.Status != "Approved")
+                                {
+                                    <form asp-action="Approve" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@course.Id" />
+                                        <button type="submit" class="btn btn-sm btn-success rounded-pill">Approve</button>
+                                    </form>
+                                }
+
+                                @if (course.Status != "Rejected")
+                                {
+                                    <form asp-action="Reject" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@course.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-warning rounded-pill">Reject</button>
+                                    </form>
+                                }
+
+                                @if (course.Status != "Pending")
+                                {
+                                    <form asp-action="MoveToPending" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@course.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill">Move To Pending</button>
+                                    </form>
+                                }
+
+                                <form asp-action="DeleteCourse" method="post" onsubmit="return confirm('Delete this course and all related data?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@course.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

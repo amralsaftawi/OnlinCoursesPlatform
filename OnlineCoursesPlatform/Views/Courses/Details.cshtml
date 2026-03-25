@@ -1,27 +1,37 @@
 @model OnlineCoursesPlatform.ViewModels.CourseDetailsViewModel
+@using OnlineCoursesPlatform.Models.Enums
 
 @{
     ViewData["Title"] = Model.Title;
 }
 
 <style>
-    :root { 
-        --main-purple: #a435f0; 
-        --udemy-dark: #1c1d1f; 
+    :root {
+        --main-purple: #a435f0;
+        --udemy-dark: #1c1d1f;
         --border-gray: #d1d7dc;
     }
+
     .hero-banner { background: var(--udemy-dark); color: white; padding: 40px 0; border-bottom: 1px solid #3e4143; }
-    .floating-card { background: white; border: 1px solid var(--border-gray); border-radius: 8px; position: sticky; top: 20px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden; }
+    .floating-card { background: white; border: 1px solid var(--border-gray); border-radius: 8px; position: sticky; top: 20px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); overflow: hidden; }
     .accordion-button:not(.collapsed) { background-color: #f7f9fa; color: #1c1d1f; box-shadow: none; }
     .lesson-row { transition: 0.2s; border-bottom: 1px solid #f0f0f0; }
     .lesson-row:hover { background-color: #f8f9fa; }
     .lesson-locked { opacity: 0.6; cursor: not-allowed; }
     .instructor-img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; }
     .lock-icon { color: #adb5bd; font-size: 0.9rem; }
+    .review-form textarea { resize: vertical; }
 </style>
 
 <div class="hero-banner mb-5">
     <div class="container">
+        @if (!string.Equals(Model.Status, "Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            <div class="alert alert-warning border-0 rounded-3 mb-4">
+                This course is currently <strong>@Model.Status</strong>. Only admins and the course owner can preview it before publication.
+            </div>
+        }
+
         <div class="row">
             <div class="col-lg-8">
                 <nav aria-label="breadcrumb">
@@ -30,138 +40,232 @@
                         <li class="breadcrumb-item active text-white-50">@Model.CategoryName</li>
                     </ol>
                 </nav>
+
                 <h1 class="fw-bold display-5 mb-3">@Model.Title</h1>
                 <p class="fs-5 mb-4 text-white-50">@Model.Description</p>
-                <div class="d-flex align-items-center gap-3">
+
+                <div class="d-flex align-items-center gap-3 flex-wrap">
                     <span class="badge bg-warning text-dark px-2 py-1">@Model.Level</span>
                     <span class="text-warning fw-bold">@Model.AverageRating.ToString("0.0") <i class="bi bi-star-fill"></i></span>
                     <span class="text-white-50 small">(@Model.ReviewCount ratings)</span>
+                    <span class="me-3"><i class="bi bi-collection-play me-1"></i>@Model.TotalLessons lessons</span>
                 </div>
-                
-                <h1 class="hero-title">@Model.Title</h1>
-                <p class="hero-subtitle">@Model.Description</p>
-                
-                <div class="hero-meta d-flex align-items-center flex-wrap">
-                    @* Rating Component *@
-                    <span class="text-warning fw-bold me-2" style="font-size: 1.1rem;">@Model.AverageRating.ToString("0.0")</span>
-                    <div class="rating-stars me-2" style="font-size: 0.9rem;">
-                        @for(int i = 0; i < Math.Floor(Model.AverageRating); i++) { <i class="bi bi-star-fill"></i> }
-                        @if(Model.AverageRating % 1 != 0) { <i class="bi bi-star-half"></i> }
-                        @for(int i = 0; i < (5 - Math.Ceiling(Model.AverageRating)); i++) { <i class="bi bi-star"></i> }
+
+                <div class="mt-3 d-flex align-items-center flex-wrap gap-3">
+                    <span>Created by <a asp-controller="Instructor" asp-action="Profile" asp-route-id="@Model.InstructorId" class="text-info text-decoration-underline">@Model.InstructorName</a></span>
+                    <span><i class="bi bi-globe me-1"></i>@(string.IsNullOrWhiteSpace(Model.Language) ? "English" : Model.Language)</span>
+                    <span><i class="bi bi-patch-check me-1"></i>@Model.Status</span>
+                </div>
+
+                @if (Model.Tags.Any())
+                {
+                    <div class="mt-3 d-flex flex-wrap gap-2">
+                        @foreach (var tag in Model.Tags)
+                        {
+                            <span class="badge rounded-pill bg-light text-dark border">#@tag</span>
+                        }
                     </div>
-                    <a href="#reviews" class="text-info text-decoration-underline me-3">(@Model.ReviewCount ratings)</a>
-                    
-                    <span class="me-3"><i class="bi bi-person-fill"></i> @(Model.ReviewCount * 142) students</span>
-                </div>
-                
-                <div class="hero-meta mt-2">
-                    <span class="me-4">Created by <a href="#instructor" class="text-info text-decoration-underline">@Model.InstructorName</a></span>
-                    <span class="me-4"><i class="bi bi-patch-exclamation-fill me-1"></i>Last updated 11/2025</span>
-                    <span class="me-4"><i class="bi bi-globe me-1"></i>@Model.Language</span>
-                </div>
+                }
             </div>
         </div>
     </div>
 </div>
 
 <div class="container pb-5">
-    <div class="row">
-        <!-- Main Content Area -->
-        <div class="col-lg-8 pe-lg-5">
+    <div class="row g-4">
+        <div class="col-lg-8">
             <h4 class="fw-bold mb-4">Course Content</h4>
             <div class="d-flex justify-content-between mb-2 text-muted small">
                 <span>@Model.SectionCount sections • @Model.TotalLessons lectures • @Model.TotalDuration min total length</span>
+            </div>
+
+            @if (Model.IsOwner)
+            {
+                <div class="alert alert-info rounded-3 border-0 mb-4">
+                    You are the owner of this course. Students cannot enroll in their own course, but you can edit the basics and manage the curriculum.
                 </div>
+            }
+            else if (Model.IsEnrolled)
+            {
+                <div class="metric-card p-3 mb-4">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <div class="small text-muted text-uppercase">Your Progress</div>
+                            <div class="fw-bold fs-4 text-primary">@Model.ProgressPercentage%</div>
+                        </div>
+                        <a asp-controller="Enrollment" asp-action="GetMyEnrolledCourses" class="btn btn-outline-dark rounded-pill">Open My Learning</a>
+                    </div>
+                    <div class="progress mt-3" style="height: 10px;">
+                        <div class="progress-bar" role="progressbar" style="width: @Model.ProgressPercentage%" aria-valuenow="@Model.ProgressPercentage" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            }
 
             <div class="accordion border rounded overflow-hidden" id="syllabusAccordion">
-                @if (Model.Sections != null)
+                @if (Model.Sections.Any())
                 {
-                    @foreach (var secItem in Model.Sections)
-                        {
-                            string headingId = $"heading{courseSection.Id}";
-                            string collapseId = $"collapse{courseSection.Id}";
+                    foreach (var sectionItem in Model.Sections)
+                    {
+                        <div class="accordion-item border-0 border-bottom">
+                            <h2 class="accordion-header" id="heading-@sectionItem.Id">
+                                <button class="accordion-button collapsed fw-bold py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@sectionItem.Id" aria-expanded="false" aria-controls="collapse-@sectionItem.Id">
+                                    <span class="flex-grow-1">@sectionItem.Title</span>
+                                    <span class="text-muted small fw-normal me-3">@(sectionItem.Lessons?.Count ?? 0) lectures</span>
+                                </button>
+                            </h2>
 
-                            <div class="accordion-item border-0 border-bottom">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed fw-bold py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@secItem.Id">
-                                    <span class="flex-grow-1">@secItem.Title</span>
-                                    <span class="text-muted small fw-normal me-3">@(secItem.Lessons?.Count ?? 0) lectures</span>
-                                    </button>
-                                </h2>
-                            <div id="collapse-@secItem.Id" class="accordion-collapse collapse" data-bs-parent="#syllabusAccordion">
+                            <div id="collapse-@sectionItem.Id" class="accordion-collapse collapse" aria-labelledby="heading-@sectionItem.Id" data-bs-parent="#syllabusAccordion">
                                 <div class="accordion-body p-0">
-                                    @if (secItem.Lessons != null)
+                                    @if (sectionItem.Lessons != null && sectionItem.Lessons.Any())
                                     {
-                                        @foreach (var lesItem in secItem.Lessons)
+                                        foreach (var lesson in sectionItem.Lessons)
                                         {
-                                            bool canAccess = Model.IsEnrolled || lesItem.IsFree;
-                                            <div class="lesson-row d-flex justify-content-between align-items-center p-3 @(canAccess ? "" : "lesson-locked")">
+                                            var canAccess = Model.IsEnrolled || Model.IsOwner || lesson.IsFree;
+                                            var iconClass = lesson.Type == LessonType.Video ? "bi-play-circle-fill" : lesson.Type == LessonType.PDF ? "bi-file-earmark-pdf-fill" : "bi-file-earmark-text-fill";
+
+                                            <div class="lesson-row d-flex justify-content-between align-items-center p-3 @(canAccess ? string.Empty : "lesson-locked")">
                                                 <div class="d-flex align-items-center">
                                                     @if (canAccess)
                                                     {
-                                                        var iconClass = (lesItem.Type == OnlineCoursesPlatform.Models.Enums.LessonType.Video) ? "bi-play-circle-fill" : "bi-file-earmark-pdf-fill";
                                                         <i class="bi @iconClass me-3 text-secondary"></i>
-                                                        <a asp-controller="Learning" asp-action="Details" asp-route-id="@lesItem.Id" class="text-decoration-none text-dark fw-medium">
-                                                            @lesItem.Title
+                                                        <a asp-controller="Learning" asp-action="Details" asp-route-id="@lesson.Id" class="text-decoration-none text-dark fw-medium">
+                                                            @lesson.Title
                                                         </a>
                                                     }
                                                     else
-                                        {
+                                                    {
                                                         <i class="bi bi-lock-fill me-3 lock-icon"></i>
-                                                        <span class="text-muted">@lesItem.Title</span>
+                                                        <span class="text-muted">@lesson.Title</span>
                                                     }
                                                 </div>
+
                                                 <div class="d-flex align-items-center gap-3">
-                                                    @if (!Model.IsEnrolled && lesItem.IsFree)
+                                                    @if (!Model.IsEnrolled && !Model.IsOwner && lesson.IsFree)
                                                     {
                                                         <span class="badge rounded-pill bg-light text-primary border border-primary small">Free Preview</span>
                                                     }
-                                                    <span class="text-muted small">@lesItem.Duration:00</span>
+                                                    <span class="text-muted small">@lesson.Duration min</span>
                                                 </div>
                                             </div>
                                         }
-
-                                        @if(!courseSection.Lessons.Any())
-                                        {
-                                            <div class="p-3 text-muted small text-center">No lessons in this section yet.</div>
-                                        }
-
-                                    </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="p-3 text-muted small text-center">No lessons in this section yet.</div>
+                                    }
                                 </div>
                             </div>
-                        }
-                    </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="p-4 text-muted text-center">No sections available for this course yet.</div>
                 }
             </div>
 
-            <div class="mt-5 pt-4 border-top">
+            <div class="mt-5 pt-4 border-top" id="instructor">
                 <h4 class="fw-bold mb-4">Instructor</h4>
                 <div class="d-flex align-items-center gap-4">
-                    <img src="@(string.IsNullOrEmpty(Model.InstructorProfilePicture) ? "https://ui-avatars.com/api/?name=" + Model.InstructorName : Model.InstructorProfilePicture)" class="instructor-img shadow-sm" alt="Instructor">
+                    <img src="@(string.IsNullOrEmpty(Model.InstructorProfilePicture) ? "https://ui-avatars.com/api/?name=" + Model.InstructorName : (Model.InstructorProfilePicture.StartsWith("/") ? Model.InstructorProfilePicture : "/images/profiles/" + Model.InstructorProfilePicture))" class="instructor-img shadow-sm" alt="Instructor">
                     <div>
-                        <h5 class="fw-bold text-primary mb-1">@Model.InstructorName</h5>
-                        <p class="text-muted mb-0">Senior Backend Developer & Expert Mentor</p>
-                    </div>
+                        <h5 class="fw-bold text-primary mb-1">
+                            <a asp-controller="Instructor" asp-action="Profile" asp-route-id="@Model.InstructorId" class="text-decoration-none">@Model.InstructorName</a>
+                        </h5>
+                        <p class="text-muted mb-0">Open the instructor profile to browse all published courses.</p>
                     </div>
                 </div>
             </div>
+
+            @if (Model.CanReview)
+            {
+                <div class="mt-5 pt-4 border-top review-form">
+                    <h4 class="fw-bold mb-3">Leave A Course Review</h4>
+                    <p class="text-muted">@(Model.HasReviewed ? "You can update your current course review here." : "Share your learning experience with future students.")</p>
+                    <form asp-action="AddReview" asp-route-id="@Model.Id" method="post" class="row g-3">
+                        @Html.AntiForgeryToken()
+                        <div class="col-md-3">
+                            <label for="rating" class="form-label fw-semibold">Rating</label>
+                            <select id="rating" name="rating" class="form-select" required>
+                                <option value="5">5 Stars</option>
+                                <option value="4">4 Stars</option>
+                                <option value="3">3 Stars</option>
+                                <option value="2">2 Stars</option>
+                                <option value="1">1 Star</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="comment" class="form-label fw-semibold">Comment</label>
+                            <textarea id="comment" name="comment" rows="4" class="form-control" placeholder="What stood out to you in this course?" required></textarea>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-app-primary">@(Model.HasReviewed ? "Update Review" : "Post Review")</button>
+                        </div>
+                    </form>
+                </div>
+            }
+
+            @if (Model.Reviews.Any())
+            {
+                <div class="mt-5 pt-4 border-top" id="reviews">
+                    <h4 class="fw-bold mb-4">Student Feedback</h4>
+
+                    @foreach (var review in Model.Reviews)
+                    {
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <div class="fw-bold">@review.StudentName</div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="text-warning">
+                                            @for (var i = 0; i < review.Rating; i++)
+                                            {
+                                                <i class="bi bi-star-fill"></i>
+                                            }
+                                            @for (var i = review.Rating; i < 5; i++)
+                                            {
+                                                <i class="bi bi-star"></i>
+                                            }
+                                        </div>
+                                        <span class="text-muted small">@review.CreatedAt.ToString("MMM yyyy")</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p class="text-dark m-0">@review.Comment</p>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
 
         <div class="col-lg-4">
             <div class="floating-card shadow">
                 <div class="position-relative">
-                    <img src="@Model.ImageUrl" class="w-100" style="height: 220px; object-fit: cover;" alt="Course Image">
+                    <img src="@(string.IsNullOrWhiteSpace(Model.ImageUrl) ? "/images/default-course.jpg" : Model.ImageUrl)" class="w-100" style="height: 220px; object-fit: cover;" alt="Course Image">
                 </div>
+
                 <div class="p-4">
-                    @if (!Model.IsEnrolled)
+                    @if (Model.IsOwner)
+                    {
+                        <div class="alert alert-primary rounded-3 border-0 mb-3">
+                            <strong>Owner view:</strong> this course belongs to you.
+                        </div>
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary btn-lg w-100 py-3 fw-bold mb-3 shadow-sm" style="background: var(--main-purple); border:none;">
+                            Edit Course
+                        </a>
+                        <a asp-controller="Lessons" asp-action="ManageContent" asp-route-courseId="@Model.Id" class="btn btn-outline-dark btn-lg w-100 py-3 fw-bold mb-3">
+                            Manage Curriculum
+                        </a>
+                    }
+                    else if (!Model.IsEnrolled)
                     {
                         <div class="d-flex align-items-baseline gap-2 mb-3">
                             <h2 class="fw-bold mb-0">@Model.CurrencySymbol@Model.Price</h2>
                             <del class="text-muted small">@Model.CurrencySymbol@(Model.Price + 25)</del>
                         </div>
 
-                        <a asp-controller="Enrollment" asp-action="Confirm" asp-route-id="@Model.Id" 
-                           class="btn btn-primary btn-lg w-100 py-3 fw-bold mb-3 shadow-sm" 
-                           style="background: var(--main-purple); border:none;">
+                        <a asp-controller="Enrollment" asp-action="Confirm" asp-route-id="@Model.Id" class="btn btn-primary btn-lg w-100 py-3 fw-bold mb-3 shadow-sm" style="background: var(--main-purple); border:none;">
                             Enroll Now
                         </a>
                         <p class="text-center small text-muted mb-4">30-Day Money-Back Guarantee</p>
@@ -172,73 +276,31 @@
                             <i class="bi bi-check-circle-fill me-2 text-success"></i> You are Enrolled
                         </div>
 
-                    @foreach (var review in Model.Reviews)
-                    {
-                            var firstLessonId = Model.Sections?.FirstOrDefault()?.Lessons?.FirstOrDefault()?.Id;
+                        @if (Model.FirstLessonId != null)
+                        {
+                            <a asp-controller="Learning" asp-action="Details" asp-route-id="@Model.FirstLessonId" class="btn btn-outline-dark btn-lg w-100 py-3 fw-bold mb-3">
+                                Go to Course
+                            </a>
+                        }
+                        else
+                        {
+                            <button class="btn btn-outline-secondary btn-lg w-100 py-3 fw-bold mb-3" disabled>
+                                No Lessons Available
+                            </button>
+                        }
 
-                            if (firstLessonId != null)
-                                    {
-                                <a asp-controller="Learning" asp-action="Details" asp-route-id="@firstLessonId" 
-                                   class="btn btn-outline-dark btn-lg w-100 py-3 fw-bold mb-3">
-                                    Go to Course
-                                </a>
-                                    }
-                                    else
-                                    {
-                                <button class="btn btn-outline-secondary btn-lg w-100 py-3 fw-bold mb-3" disabled>
-                                    No Lessons Available
-                                </button>
-                            }
-                                    }
-                                    
-                                    <div>
-                                        <div class="fw-bold">@review.StudentName</div>
-                                        <div class="d-flex align-items-center">
-                                            <div class="rating-stars me-2" style="font-size: 0.8rem;">
-                                                @for(int i = 0; i < review.Rating; i++) { <i class="bi bi-star-fill"></i> }
-                                                @for(int i = 0; i < (5 - review.Rating); i++) { <i class="bi bi-star"></i> }
-                                            </div>
-                                            <span class="text-muted small">@review.CreatedAt.ToString("MMM yyyy")</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <p class="text-dark m-0" style="font-size: 0.95rem;">"@review.Comment"</p>
-                            </div>
-                        </div>
+                        <a asp-controller="Enrollment" asp-action="GetMyEnrolledCourses" class="btn btn-link w-100 text-decoration-none fw-semibold">
+                            Open My Learning Dashboard
+                        </a>
                     }
-                </div>
-            </div>
 
-        </div>
-
-        <!-- Right Sidebar (Floating Enrollment Card) -->
-        <div class="col-lg-4 d-none d-lg-block">
-            <div class="enroll-card">
-                <!-- Course Image on Top -->
-                <img src="@(string.IsNullOrEmpty(Model.ImageUrl) ? "/images/default-course.jpg" : Model.ImageUrl)" class="enroll-card-img" alt="@Model.Title">
-                
-                <div class="p-4">
-                    <div class="enroll-price-huge">@Model.CurrencySymbol@Model.Price</div>
-                    
-                    <button class="btn btn-danger w-100 py-3 fw-bold mb-2 text-white" style="background-color: #a435f0; border: none; font-size: 1.1rem;">
-                        Enroll Now
-                    </button>
-                    
-                    <div class="text-center text-muted small mb-4">30-Day Money-Back Guarantee</div>
-                    
                     <h6 class="fw-bold small mb-3">This course includes:</h6>
                     <ul class="list-unstyled small lh-lg mb-0">
-                        <li><i class="bi bi-play-btn me-2"></i> @Model.TotalDuration minutes video content</li>
+                        <li><i class="bi bi-play-btn me-2"></i> @Model.TotalDuration minutes of lesson content</li>
                         <li><i class="bi bi-infinity me-2"></i> Full lifetime access</li>
-                        <li><i class="bi bi-phone me-2"></i> Access on mobile and TV</li>
+                        <li><i class="bi bi-phone me-2"></i> Access on mobile and desktop</li>
                         <li><i class="bi bi-trophy me-2"></i> Certificate of completion</li>
                     </ul>
-
-                    <div class="d-flex justify-content-between mt-4 pb-2 border-bottom">
-                        <a href="#" class="text-dark fw-bold text-decoration-underline" style="font-size: 0.9rem;">Share</a>
-                        <a href="#" class="text-dark fw-bold text-decoration-underline" style="font-size: 0.9rem;">Gift this course</a>
-                        <a href="#" class="text-dark fw-bold text-decoration-underline" style="font-size: 0.9rem;">Apply Coupon</a>
-                    </div>
                 </div>
             </div>
         </div>

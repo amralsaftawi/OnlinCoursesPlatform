@@ -12,5 +12,6 @@ namespace OnlineCoursesPlatform.Services.Interfaces
         Task<Lesson> GetLessonByIdAsync(int lessonId);
         Task<Lesson> UpdateLessonAsync(int lessonId, string title, Models.Enums.LessonType type, string contentUrl, int duration, bool isFree);
         Task<bool> DeleteLessonAsync(int lessonId);
+        Task RecalculateCourseDurationAsync(int courseId);
     }
 }
