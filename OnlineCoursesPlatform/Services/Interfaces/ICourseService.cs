@@ -1,3 +1,4 @@
+using OnlineCoursesPlatform.Dtos;
 using OnlineCoursesPlatform.Models;
 using OnlineCoursesPlatform.ViewModels;
 
@@ -10,11 +11,12 @@ namespace OnlineCoursesPlatform.Services.Interfaces
         Task<Course> GetCourseByIdAsync(int id);
         Task<Course> GetCourseWithDetailsAsync(int id);
         Task<CourseDetailsViewModel> GetCourseDetailsProjectedAsync(int id);
+        Task<CourseEditorResultDto> GetCourseForEditAsync(int courseId, int actingUserId, bool isAdmin);
         Task<IEnumerable<Course>> GetCoursesWithDetailsAsync();
         Task<IEnumerable<Course>> GetCoursesByInstructorAsync(int instructorId);
         Task<IEnumerable<Course>> GetCoursesByCategoryAsync(int categoryId);
         Task<Course> CreateCourseAsync(Course course);
-        Task<Course> UpdateCourseAsync(Course course);
+        Task<CourseUpdateResultDto> UpdateCourseAsync(EditCourseViewModel model, int actingUserId, bool isAdmin);
         Task<bool> DeleteCourseAsync(int id);
         Task<bool> SaveChangesAsync();
 

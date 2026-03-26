@@ -1,4 +1,4 @@
-@model OnlineCoursesPlatform.Models.Course
+@model OnlineCoursesPlatform.ViewModels.EditCourseViewModel
 @using OnlineCoursesPlatform.Models.Enums
 
 @{
@@ -15,12 +15,7 @@
     <form asp-action="Edit" method="post" enctype="multipart/form-data" class="row g-4">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="Id" />
-        <input type="hidden" asp-for="InstructorId" />
-        <input type="hidden" asp-for="CategoryId" />
-        <input type="hidden" asp-for="CurrencyId" />
-        <input type="hidden" asp-for="ImageUrl" />
-        <input type="hidden" asp-for="Status" />
-        <input type="hidden" asp-for="TotalDuration" />
+        <input type="hidden" asp-for="ExistingImageUrl" />
 
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
@@ -58,11 +53,12 @@
             <label class="form-label fw-semibold">Course Image</label>
             <div class="row g-3 align-items-center">
                 <div class="col-md-3">
-                    <img src="@(string.IsNullOrWhiteSpace(Model.ImageUrl) ? "/images/default-course.jpg" : Model.ImageUrl)" class="img-fluid rounded-4 border" style="max-height: 180px; object-fit: cover;" alt="@Model.Title" />
+                    <img src="@(string.IsNullOrWhiteSpace(Model.ExistingImageUrl) ? "/images/default-course.jpg" : Model.ExistingImageUrl)" class="img-fluid rounded-4 border" style="max-height: 180px; object-fit: cover;" alt="@Model.Title" />
                 </div>
                 <div class="col-md-9">
-                    <input type="file" name="imageFile" class="form-control" accept="image/*" />
+                    <input asp-for="ImageFile" class="form-control" accept="image/*" />
                     <div class="form-text">Upload a new image to replace the current one, or add one now if the course still uses the default image.</div>
+                    <span asp-validation-for="ImageFile" class="text-danger small"></span>
                 </div>
             </div>
         </div>

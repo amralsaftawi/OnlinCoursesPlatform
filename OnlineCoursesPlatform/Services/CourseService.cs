@@ -1,9 +1,14 @@
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using OnlinCoursePlatform.Abstrctions;
 using OnlinCoursesPlatform.Data;
+using OnlineCoursesPlatform.Dtos;
+using OnlineCoursesPlatform.Infrastructure;
 using OnlineCoursesPlatform.Models;
+using OnlineCoursesPlatform.Models.Enums;
 using OnlineCoursesPlatform.Repositories.Interface;
 using OnlineCoursesPlatform.Services.Interfaces;
 using OnlineCoursesPlatform.ViewModels;
@@ -15,12 +20,14 @@ namespace OnlineCoursesPlatform.Services
         private readonly ICourseRepository _courseRepository;
         private readonly IMapper _mapper;
         private readonly AppDbContext _context;
+        private readonly IWebHostEnvironment _environment;
 
-        public CourseService(ICourseRepository courseRepository, IMapper mapper, AppDbContext context)
+        public CourseService(ICourseRepository courseRepository, IMapper mapper, AppDbContext context, IWebHostEnvironment environment)
         {
             _courseRepository = courseRepository;
             _mapper = mapper;
             _context = context;
+            _environment = environment;
         }
 
         public async Task<IEnumerable<Course>> GetAllCoursesAsync()
@@ -44,6 +51,39 @@ namespace OnlineCoursesPlatform.Services
                 .Where(c => c.Id == id)
                 .ProjectTo<CourseDetailsViewModel>(_mapper.ConfigurationProvider)
                 .FirstOrDefaultAsync();
+        }
+
+        public async Task<CourseEditorResultDto> GetCourseForEditAsync(int courseId, int actingUserId, bool isAdmin)
+        {
+            var course = await _context.Courses
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.Id == courseId);
+
+            if (course == null)
+            {
+                return new CourseEditorResultDto { NotFound = true };
+            }
+
+            if (!isAdmin && course.InstructorId != actingUserId)
+            {
+                return new CourseEditorResultDto { IsForbidden = true };
+            }
+
+            return new CourseEditorResultDto
+            {
+                ViewModel = new EditCourseViewModel
+                {
+                    Id = course.Id,
+                    Title = course.Title,
+                    Description = course.Description,
+                    Price = course.Price,
+                    Level = course.Level,
+                    Language = course.Language,
+                    ExistingImageUrl = string.IsNullOrWhiteSpace(course.ImageUrl)
+                        ? "/images/default-course.jpg"
+                        : course.ImageUrl
+                }
+            };
         }
 
         public async Task<IEnumerable<Course>> GetCoursesWithDetailsAsync()
@@ -108,16 +148,69 @@ namespace OnlineCoursesPlatform.Services
             return createdCourse;
         }
 
-        public async Task<Course> UpdateCourseAsync(Course course)
+        public async Task<CourseUpdateResultDto> UpdateCourseAsync(EditCourseViewModel model, int actingUserId, bool isAdmin)
         {
+            var course = await _context.Courses.FirstOrDefaultAsync(item => item.Id == model.Id);
             if (course == null)
             {
-                throw new ArgumentNullException(nameof(course));
+                return new CourseUpdateResultDto
+                {
+                    NotFound = true,
+                    Errors = ["Course not found."]
+                };
             }
 
-            var updatedCourse = await _courseRepository.UpdateAsync(course);
-            await _courseRepository.SaveAsync();
-            return updatedCourse;
+            if (!isAdmin && course.InstructorId != actingUserId)
+            {
+                return new CourseUpdateResultDto
+                {
+                    IsForbidden = true
+                };
+            }
+
+            course.Title = model.Title.Trim();
+            course.Description = model.Description.Trim();
+            course.Price = model.Price;
+            course.Level = model.Level;
+            course.Language = model.Language.Trim();
+
+            string? previousImageUrl = null;
+            string? newImageUrl = null;
+
+            if (model.ImageFile != null && model.ImageFile.Length > 0)
+            {
+                previousImageUrl = course.ImageUrl;
+                newImageUrl = await SaveCourseImageAsync(model.ImageFile);
+                course.ImageUrl = newImageUrl;
+            }
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+                if (!string.IsNullOrWhiteSpace(newImageUrl))
+                {
+                    DeleteManagedCourseImage(newImageUrl);
+                }
+
+                return new CourseUpdateResultDto
+                {
+                    Errors = ["We could not save your changes right now. Please try again."]
+                };
+            }
+
+            if (!string.IsNullOrWhiteSpace(previousImageUrl))
+            {
+                DeleteManagedCourseImage(previousImageUrl);
+            }
+
+            return new CourseUpdateResultDto
+            {
+                Succeeded = true,
+                Message = "Course information updated successfully."
+            };
         }
 
         public async Task<bool> DeleteCourseAsync(int id)
@@ -134,6 +227,13 @@ namespace OnlineCoursesPlatform.Services
             {
                 return false;
             }
+
+            var articleFilesToDelete = course.Sections
+                .SelectMany(section => section.Lessons)
+                .Where(lesson => lesson.Type == LessonType.Article && LessonContentStorage.IsLocalArticleUpload(lesson.ContentUrl))
+                .Select(lesson => lesson.ContentUrl!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
             var lessonIds = course.Sections
                 .SelectMany(section => section.Lessons)
@@ -180,6 +280,12 @@ namespace OnlineCoursesPlatform.Services
 
             _context.Courses.Remove(course);
             await _context.SaveChangesAsync();
+
+            foreach (var articleFile in articleFilesToDelete)
+            {
+                LessonContentStorage.DeleteLocalArticleFile(_environment, articleFile);
+            }
+
             return true;
         }
 
@@ -201,6 +307,44 @@ namespace OnlineCoursesPlatform.Services
                 .ToListAsync();
 
             return (courses, totalCount);
+        }
+
+        private async Task<string> SaveCourseImageAsync(IFormFile imageFile)
+        {
+            var webRootPath = !string.IsNullOrWhiteSpace(_environment.WebRootPath)
+                ? _environment.WebRootPath
+                : Path.Combine(_environment.ContentRootPath, "wwwroot");
+            var uploadsFolder = Path.Combine(webRootPath, "images", "courses");
+            Directory.CreateDirectory(uploadsFolder);
+
+            var uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(imageFile.FileName)}";
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            await using var fileStream = new FileStream(filePath, FileMode.Create);
+            await imageFile.CopyToAsync(fileStream);
+
+            return $"/images/courses/{uniqueFileName}";
+        }
+
+        private void DeleteManagedCourseImage(string imageUrl)
+        {
+            if (string.IsNullOrWhiteSpace(imageUrl)
+                || !imageUrl.StartsWith("/images/courses/", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var webRootPath = !string.IsNullOrWhiteSpace(_environment.WebRootPath)
+                ? _environment.WebRootPath
+                : Path.Combine(_environment.ContentRootPath, "wwwroot");
+            var uploadsFolder = Path.Combine(webRootPath, "images", "courses");
+            var currentFileName = Path.GetFileName(imageUrl);
+            var imagePath = Path.Combine(uploadsFolder, currentFileName);
+
+            if (File.Exists(imagePath))
+            {
+                File.Delete(imagePath);
+            }
         }
     }
 }

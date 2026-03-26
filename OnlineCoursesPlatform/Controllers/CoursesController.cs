@@ -180,57 +180,54 @@ namespace OnlineCoursesPlatform.Controllers
         [Authorize(Roles = "Instructor")]
         public async Task<ActionResult> Edit(int id)
         {
-            var course = await _courseService.GetCourseByIdAsync(id);
-            if (course == null)
+            var result = await _courseService.GetCourseForEditAsync(id, GetCurrentUserId(), User.IsInRole("Admin"));
+            if (result.NotFound)
+            {
                 return NotFound();
+            }
 
-            if (course.InstructorId != GetCurrentUserId())
+            if (result.IsForbidden)
+            {
                 return Forbid();
+            }
 
-            return View(course);
+            return View(result.ViewModel);
         }
 
         [HttpPost]
         [Authorize(Roles = "Instructor")]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Edit(int id, Course course, IFormFile? imageFile)
+        public async Task<ActionResult> Edit(int id, EditCourseViewModel model)
         {
-            if (id != course.Id)
-                return BadRequest();
-
-            var existingCourse = await _courseService.GetCourseByIdAsync(id);
-            if (existingCourse == null)
-                return NotFound();
-
-            if (existingCourse.InstructorId != GetCurrentUserId())
-                return Forbid();
-
-            if (!ModelState.IsValid)
-                return View(course);
-
-            if (imageFile != null && imageFile.Length > 0)
+            if (id != model.Id)
             {
-                var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "images", "courses");
-                if (!Directory.Exists(uploadsFolder))
-                {
-                    Directory.CreateDirectory(uploadsFolder);
-                }
-
-                var uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(imageFile.FileName)}";
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                using var fileStream = new FileStream(filePath, FileMode.Create);
-                await imageFile.CopyToAsync(fileStream);
-                course.ImageUrl = $"/images/courses/{uniqueFileName}";
+                return BadRequest();
             }
 
-            course.InstructorId = existingCourse.InstructorId;
-            course.Status = existingCourse.Status;
-            course.TotalDuration = existingCourse.TotalDuration;
-            course.ImageUrl = string.IsNullOrWhiteSpace(course.ImageUrl) ? existingCourse.ImageUrl : course.ImageUrl;
-            await _courseService.UpdateCourseAsync(course);
-            TempData["Success"] = "Course information updated successfully.";
-            return RedirectToAction(nameof(Index));
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var result = await _courseService.UpdateCourseAsync(model, GetCurrentUserId(), User.IsInRole("Admin"));
+            if (result.NotFound)
+            {
+                return NotFound();
+            }
+
+            if (result.IsForbidden)
+            {
+                return Forbid();
+            }
+
+            if (!result.Succeeded)
+            {
+                ModelState.AddModelError(string.Empty, result.Errors.FirstOrDefault() ?? "We could not save your changes right now.");
+                return View(model);
+            }
+
+            TempData["SuccessMessage"] = result.Message ?? "Course information updated successfully.";
+            return RedirectToAction("MyCourses", "Instructor");
         }
 
         [Authorize(Roles = "Instructor")]

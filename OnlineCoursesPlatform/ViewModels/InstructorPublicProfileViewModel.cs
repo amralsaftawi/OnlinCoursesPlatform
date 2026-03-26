@@ -7,6 +7,7 @@ namespace OnlineCoursesPlatform.ViewModels
         public string? ProfilePicture { get; set; }
         public int TotalCourses { get; set; }
         public int TotalStudents { get; set; }
+        public bool ShowsAllCourses { get; set; }
         public List<CourseListViewModel> Courses { get; set; } = new();
     }
 }

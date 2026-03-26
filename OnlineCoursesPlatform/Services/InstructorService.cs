@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using OnlinCoursePlatform.Abstrctions;
 using OnlinCoursePlatform.Dtos;
 using OnlinCoursesPlatform.Data;
+using OnlineCoursesPlatform.Models.Enums;
+using OnlineCoursesPlatform.ViewModels;
 
 namespace OnlinCoursePlatform.Services;
 
@@ -47,6 +49,57 @@ public class InstructorService(AppDbContext context) : IInstructorService
             TotalRevenue = await _context.Enrollments
                 .Where(e => e.Course.InstructorId == instructorId)
                 .SumAsync(e => (decimal?)e.Course.Price) ?? 0
+        };
+    }
+
+    public async Task<InstructorPublicProfileViewModel?> GetInstructorProfileAsync(int instructorId, int? viewerId, bool viewerIsAdmin)
+    {
+        var instructor = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(user => user.Id == instructorId);
+
+        if (instructor == null)
+        {
+            return null;
+        }
+
+        var canSeeAllCourses = viewerIsAdmin || viewerId == instructorId;
+
+        var coursesQuery = _context.Courses
+            .AsNoTracking()
+            .Where(course => course.InstructorId == instructorId);
+
+        if (!canSeeAllCourses)
+        {
+            coursesQuery = coursesQuery.Where(course => course.Status == CourseStatus.Approved);
+        }
+
+        var instructorCourses = await coursesQuery
+            .OrderByDescending(course => course.Id)
+            .Select(course => new CourseListViewModel
+            {
+                Id = course.Id,
+                InstructorId = course.InstructorId,
+                Title = course.Title,
+                Description = course.Description,
+                Price = course.Price,
+                CategoryName = course.Category != null ? course.Category.Title : "General",
+                ImageUrl = course.ImageUrl,
+                CurrencySymbol = course.Currency != null ? course.Currency.Symbol : "$",
+                InstructorName = $"{instructor.FirstName} {instructor.LastName}".Trim(),
+                InstructorProfilePicture = instructor.ProfilePicture ?? "default-avatar.png"
+            })
+            .ToListAsync();
+
+        return new InstructorPublicProfileViewModel
+        {
+            InstructorId = instructor.Id,
+            InstructorName = $"{instructor.FirstName} {instructor.LastName}".Trim(),
+            ProfilePicture = instructor.ProfilePicture,
+            TotalCourses = instructorCourses.Count,
+            TotalStudents = await _context.Enrollments.CountAsync(enrollment => enrollment.Course.InstructorId == instructorId),
+            ShowsAllCourses = canSeeAllCourses,
+            Courses = instructorCourses
         };
     }
 }

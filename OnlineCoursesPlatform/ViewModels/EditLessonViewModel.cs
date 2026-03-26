@@ -37,7 +37,7 @@ namespace OnlineCoursesPlatform.ViewModels
             {
                 if (string.IsNullOrWhiteSpace(ContentUrl) && ArticleFile == null)
                 {
-                    yield return new ValidationResult("Please keep the article content or upload a replacement article file.", [nameof(ContentUrl), nameof(ArticleFile)]);
+                    yield return new ValidationResult("Please keep the current article PDF or upload a replacement PDF file.", [nameof(ContentUrl), nameof(ArticleFile)]);
                 }
             }
             else if (string.IsNullOrWhiteSpace(ContentUrl))

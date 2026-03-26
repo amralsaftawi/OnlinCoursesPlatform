@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OnlinCoursesPlatform.Data;
 using OnlineCoursesPlatform.Dtos;
+using OnlineCoursesPlatform.Infrastructure;
 using OnlineCoursesPlatform.Models;
 using OnlineCoursesPlatform.Models.Enums;
 using OnlineCoursesPlatform.Services.Interfaces;
@@ -14,11 +16,13 @@ namespace OnlineCoursesPlatform.Services
 
         private readonly AppDbContext _context;
         private readonly UserManager<User> _userManager;
+        private readonly IWebHostEnvironment _environment;
 
-        public AdminService(AppDbContext context, UserManager<User> userManager)
+        public AdminService(AppDbContext context, UserManager<User> userManager, IWebHostEnvironment environment)
         {
             _context = context;
             _userManager = userManager;
+            _environment = environment;
         }
 
         public async Task<AdminDashboardDto> GetDashboardAsync()
@@ -230,6 +234,13 @@ namespace OnlineCoursesPlatform.Services
             if (course == null)
                 throw new Exception("Course not found.");
 
+            var articleFilesToDelete = course.Sections
+                .SelectMany(section => section.Lessons)
+                .Where(lesson => lesson.Type == LessonType.Article && LessonContentStorage.IsLocalArticleUpload(lesson.ContentUrl))
+                .Select(lesson => lesson.ContentUrl!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
             var lessonIds = course.Sections
                 .SelectMany(section => section.Lessons)
                 .Select(lesson => lesson.Id)
@@ -275,6 +286,11 @@ namespace OnlineCoursesPlatform.Services
 
             _context.Courses.Remove(course);
             await _context.SaveChangesAsync();
+
+            foreach (var articleFile in articleFilesToDelete)
+            {
+                LessonContentStorage.DeleteLocalArticleFile(_environment, articleFile);
+            }
         }
 
         public async Task<IEnumerable<Category>> GetCategoriesAsync()

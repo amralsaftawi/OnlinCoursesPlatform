@@ -32,9 +32,9 @@ namespace OnlineCoursesPlatform.ViewModels
         {
             if (Type == LessonType.Article)
             {
-                if (string.IsNullOrWhiteSpace(ContentUrl) && ArticleFile == null)
+                if (ArticleFile == null)
                 {
-                    yield return new ValidationResult("Please write the article content or upload an article file.", [nameof(ContentUrl), nameof(ArticleFile)]);
+                    yield return new ValidationResult("Please upload a PDF file for the article lesson.", [nameof(ArticleFile)]);
                 }
             }
             else if (string.IsNullOrWhiteSpace(ContentUrl))

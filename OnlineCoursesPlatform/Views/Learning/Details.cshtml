@@ -4,12 +4,20 @@
 @functions {
     private static bool IsYouTubeUrl(string? url)
     {
-        return !string.IsNullOrWhiteSpace(url) && (url.Contains("youtube.com", StringComparison.OrdinalIgnoreCase) || url.Contains("youtu.be", StringComparison.OrdinalIgnoreCase));
+        return !string.IsNullOrWhiteSpace(url)
+            && (url.Contains("youtube.com", StringComparison.OrdinalIgnoreCase)
+                || url.Contains("youtu.be", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsPdfUrl(string? url)
     {
-        return !string.IsNullOrWhiteSpace(url) && url.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            return false;
+        }
+
+        var normalizedUrl = url.Split('?')[0].Split('#')[0];
+        return normalizedUrl.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsDirectVideoUrl(string? url)
@@ -19,9 +27,12 @@
             return false;
         }
 
-        return url.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)
-            || url.EndsWith(".webm", StringComparison.OrdinalIgnoreCase)
-            || url.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase)
+        var normalizedUrl = url.Split('?')[0].Split('#')[0];
+        return normalizedUrl.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase)
+            || normalizedUrl.EndsWith(".webm", StringComparison.OrdinalIgnoreCase)
+            || normalizedUrl.EndsWith(".ogg", StringComparison.OrdinalIgnoreCase)
+            || normalizedUrl.EndsWith(".mov", StringComparison.OrdinalIgnoreCase)
+            || normalizedUrl.EndsWith(".m4v", StringComparison.OrdinalIgnoreCase)
             || url.Contains("/videos/", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -115,6 +126,7 @@
                             <source src="@content" type="video/mp4" />
                             <source src="@content" type="video/webm" />
                             <source src="@content" type="video/ogg" />
+                            <source src="@content" />
                         </video>
                     </div>
                 }
@@ -150,23 +162,40 @@
             }
             else
             {
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="fw-bold mb-1">Article Lesson</h4>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+                    <div>
+                        <h4 class="fw-bold mb-1">Article PDF</h4>
+                        <p class="text-muted mb-0">Open the attached article document here or in a new tab.</p>
+                    </div>
+
+                    @if (IsPdfUrl(content))
+                    {
+                        <a href="@content" target="_blank" class="btn btn-app-primary">Open PDF</a>
+                    }
                 </div>
 
                 @if (string.IsNullOrWhiteSpace(content))
                 {
                     <div class="alert alert-warning">No content available.</div>
                 }
+                else if (IsPdfUrl(content))
+                {
+                    <iframe src="@content" class="w-100 rounded-4 border" style="min-height: 760px;" title="@Model.CurrentLesson.Title"></iframe>
+                }
                 else if (Uri.IsWellFormedUriString(content, UriKind.Absolute) || content.StartsWith("/"))
                 {
-                    <iframe src="@content"
-                            class="w-100 rounded-4 border"
-                            style="min-height: 700px;">
-                    </iframe>
+                    <div class="empty-state">
+                        <i class="fa-solid fa-file-pdf fs-1 text-muted mb-3"></i>
+                        <h4 class="fw-bold">This article needs a PDF file</h4>
+                        <p class="text-muted mb-3">The current stored file is not a direct PDF link, so it cannot be previewed here.</p>
+                        <a href="@content" target="_blank" class="btn btn-app-primary">Open File</a>
+                    </div>
                 }
                 else
                 {
+                    <div class="alert alert-secondary rounded-4 border-0 mb-3">
+                        This is legacy article text saved before the PDF-only article flow. It still displays here for compatibility.
+                    </div>
                     <article class="metric-card p-4" style="line-height: 1.95;">
                         @Html.Raw(Html.Encode(content)
                             .Replace("\r\n", "<br /><br />")
@@ -187,7 +216,7 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
                 <div>
                     <h4 class="fw-bold mb-1">Lesson Actions</h4>
-                    <p class="text-muted mb-0">Duration: @Model.CurrentLesson.Duration min • @Model.CompletedLessons/@Model.TotalLessons lessons completed</p>
+                    <p class="text-muted mb-0">Duration: @Model.CurrentLesson.Duration min &bull; @Model.CompletedLessons/@Model.TotalLessons lessons completed</p>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                     @if (!Model.CanTrackProgress)
@@ -238,7 +267,7 @@
                                 <i class="fa-solid @iconClass text-primary mt-1"></i>
                                 <div>
                                     <div class="fw-semibold text-dark">@lesson.Title</div>
-                                    <div class="small text-muted">@lesson.SectionTitle • @lesson.Duration min</div>
+                                    <div class="small text-muted">@lesson.SectionTitle &bull; @lesson.Duration min</div>
                                 </div>
                             </div>
                             <span class="soft-badge">@(isCurrent ? "Now" : lesson.Type.ToString())</span>

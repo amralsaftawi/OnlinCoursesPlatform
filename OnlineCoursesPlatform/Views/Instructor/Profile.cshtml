@@ -12,7 +12,11 @@
         <div class="col-md-8">
             <span class="eyebrow mb-3"><i class="fa-solid fa-chalkboard-user"></i>Instructor Profile</span>
             <h1 class="section-title mb-2">@Model.InstructorName</h1>
-            <p class="section-subtitle mb-0">Browse this instructor's published courses and explore their teaching catalog.</p>
+            <p class="section-subtitle mb-0">
+                @(Model.ShowsAllCourses
+                    ? "You are seeing the full instructor catalog, including private review states."
+                    : "Browse this instructor's published courses and explore their teaching catalog.")
+            </p>
         </div>
         <div class="col-md-4 text-md-end">
             <img src="@profileImage" class="rounded-circle shadow-sm border border-3 border-white" width="120" height="120" style="object-fit: cover;" alt="@Model.InstructorName" />
@@ -23,7 +27,7 @@
 <section class="row g-3 mb-4">
     <div class="col-md-6">
         <div class="metric-card p-4 h-100">
-            <div class="text-muted small mb-2">Published Courses</div>
+            <div class="text-muted small mb-2">@(Model.ShowsAllCourses ? "Visible Courses" : "Published Courses")</div>
             <div class="display-6 fw-bold">@Model.TotalCourses</div>
         </div>
     </div>
