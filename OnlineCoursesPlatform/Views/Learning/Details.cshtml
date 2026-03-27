@@ -53,6 +53,18 @@
 
         return url;
     }
+
+    private static (string Label, string Icon) DescribeLessonType(LessonType type)
+    {
+        return type switch
+        {
+            LessonType.Video => ("Video", "fa-circle-play"),
+            LessonType.PDF => ("PDF", "fa-file-pdf"),
+            LessonType.Article => ("Article", "fa-file-lines"),
+            LessonType.Quiz => ("Quiz", "fa-circle-question"),
+            _ => ("Lesson", "fa-book-open")
+        };
+    }
 }
 
 @{
@@ -66,6 +78,9 @@
     var previousLesson = currentIndex > 0 ? orderedLessons[currentIndex - 1] : null;
     var nextLesson = currentIndex >= 0 && currentIndex < orderedLessons.Count - 1 ? orderedLessons[currentIndex + 1] : null;
     var isTrackingEnabled = Model.CanTrackProgress;
+    var currentLessonMeta = DescribeLessonType(Model.CurrentLesson.Type);
+    var isQuizLesson = Model.CurrentLesson.Type == LessonType.Quiz;
+    var hasTextArticle = !string.IsNullOrWhiteSpace(Model.CurrentLesson.ArticleContent);
 }
 
 <section class="page-hero mb-4">
@@ -73,7 +88,15 @@
         <div>
             <span class="eyebrow mb-3"><i class="fa-solid fa-book-open-reader"></i>Learning Workspace</span>
             <h1 class="section-title mb-2">@Model.CurrentLesson.Title</h1>
-            <p class="section-subtitle mb-0">@Model.CourseTitle</p>
+            <p class="section-subtitle mb-2">@Model.CourseTitle</p>
+            <div class="d-flex flex-wrap gap-2">
+                <span class="soft-badge"><i class="fa-solid @currentLessonMeta.Icon"></i>@currentLessonMeta.Label</span>
+                <span class="soft-badge"><i class="fa-regular fa-clock"></i>@Model.CurrentLesson.Duration min</span>
+                @if (Model.CurrentLesson.IsFree)
+                {
+                    <span class="soft-badge"><i class="fa-solid fa-lock-open"></i>Free Preview</span>
+                }
+            </div>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a asp-controller="Courses" asp-action="Details" asp-route-id="@Model.CourseId" class="btn btn-app-secondary-dark">Course Details</a>
@@ -86,22 +109,22 @@
 </section>
 
 <div class="row g-4">
-    <div class="col-lg-8">
+    <div class="col-xl-8">
         <section class="content-panel p-4 mb-4">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
                 <div>
                     <div class="small text-muted text-uppercase mb-1">Current Lesson</div>
-                    <div class="fw-semibold">@((currentIndex + 1).ToString()) / @orderedLessons.Count</div>
+                    <div class="fw-semibold">@(currentIndex + 1) / @orderedLessons.Count</div>
                     <div class="small text-muted">@(string.IsNullOrWhiteSpace(Model.CurrentLesson.SectionTitle) ? "Course Content" : Model.CurrentLesson.SectionTitle)</div>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                     @if (previousLesson != null)
                     {
-                        <a asp-action="Details" asp-route-id="@previousLesson.Id" class="btn btn-outline-dark rounded-pill">Previous Lesson</a>
+                        <a asp-action="Details" asp-route-id="@previousLesson.Id" class="btn btn-outline-dark rounded-pill">Previous</a>
                     }
                     @if (nextLesson != null)
                     {
-                        <a asp-action="Details" asp-route-id="@nextLesson.Id" class="btn btn-outline-dark rounded-pill">Next Lesson</a>
+                        <a asp-action="Details" asp-route-id="@nextLesson.Id" class="btn btn-outline-dark rounded-pill">Next</a>
                     }
                 </div>
             </div>
@@ -110,18 +133,18 @@
             {
                 <div class="mb-3">
                     <h4 class="fw-bold mb-2">Video Lesson</h4>
-                    <p class="text-muted mb-0">Play the lesson here and continue to the next lecture when you finish.</p>
+                    <p class="text-muted mb-0">Watch the lecture here, then move directly to the next lesson when you finish.</p>
                 </div>
 
-                if (IsYouTubeUrl(content))
+                @if (IsYouTubeUrl(content))
                 {
-                    <div class="ratio ratio-16x9 rounded-4 overflow-hidden bg-dark">
+                    <div class="ratio ratio-16x9 rounded-4 overflow-hidden bg-dark shadow-sm">
                         <iframe src="@GetYouTubeEmbedUrl(content)?rel=0&modestbranding=1" title="@Model.CurrentLesson.Title" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen class="border-0"></iframe>
                     </div>
                 }
                 else if (IsDirectVideoUrl(content))
                 {
-                    <div class="ratio ratio-16x9 rounded-4 overflow-hidden bg-dark">
+                    <div class="ratio ratio-16x9 rounded-4 overflow-hidden bg-dark shadow-sm">
                         <video controls playsinline preload="metadata" class="w-100 h-100">
                             <source src="@content" type="video/mp4" />
                             <source src="@content" type="video/webm" />
@@ -132,7 +155,7 @@
                 }
                 else
                 {
-                    <div class="ratio ratio-16x9 rounded-4 overflow-hidden bg-dark">
+                    <div class="ratio ratio-16x9 rounded-4 overflow-hidden bg-dark shadow-sm">
                         <iframe src="@content" title="@Model.CurrentLesson.Title" allow="autoplay; fullscreen" allowfullscreen class="border-0"></iframe>
                     </div>
                 }
@@ -142,7 +165,7 @@
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
                     <div>
                         <h4 class="fw-bold mb-1">PDF Lesson</h4>
-                        <p class="text-muted mb-0">Review the attached file inside the platform or open it separately.</p>
+                        <p class="text-muted mb-0">Read the material inside the platform or open it in a dedicated tab.</p>
                     </div>
                     <a href="@content" target="_blank" class="btn btn-app-primary">Open PDF</a>
                 </div>
@@ -156,51 +179,84 @@
                     <div class="empty-state">
                         <i class="fa-solid fa-file-pdf fs-1 text-muted mb-3"></i>
                         <h4 class="fw-bold">PDF preview is not available</h4>
-                        <p class="text-muted">The stored lesson file is not a direct PDF link, so open it in a new tab.</p>
+                        <p class="text-muted mb-3">The stored file is not a direct PDF source, so open it in a new tab.</p>
+                        <a href="@content" target="_blank" class="btn btn-app-primary">Open File</a>
                     </div>
                 }
             }
-            else
+            else if (Model.CurrentLesson.Type == LessonType.Article)
             {
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
                     <div>
-                        <h4 class="fw-bold mb-1">Article PDF</h4>
-                        <p class="text-muted mb-0">Open the attached article document here or in a new tab.</p>
+                        <h4 class="fw-bold mb-1">Article Lesson</h4>
+                        <p class="text-muted mb-0">Read the text directly here without leaving the learning flow.</p>
                     </div>
-
-                    @if (IsPdfUrl(content))
-                    {
-                        <a href="@content" target="_blank" class="btn btn-app-primary">Open PDF</a>
-                    }
                 </div>
 
-                @if (string.IsNullOrWhiteSpace(content))
+                @if (hasTextArticle)
                 {
-                    <div class="alert alert-warning">No content available.</div>
+                    <article class="metric-card p-4" style="line-height: 1.9;">
+                        @Html.Raw(Html.Encode(Model.CurrentLesson.ArticleContent)
+                            .Replace("\r\n", "<br /><br />")
+                            .Replace("\n", "<br /><br />"))
+                    </article>
                 }
-                else if (IsPdfUrl(content))
-                {
-                    <iframe src="@content" class="w-100 rounded-4 border" style="min-height: 760px;" title="@Model.CurrentLesson.Title"></iframe>
-                }
-                else if (Uri.IsWellFormedUriString(content, UriKind.Absolute) || content.StartsWith("/"))
+                else if (!string.IsNullOrWhiteSpace(content) && (Uri.IsWellFormedUriString(content, UriKind.Absolute) || content.StartsWith("/")))
                 {
                     <div class="empty-state">
-                        <i class="fa-solid fa-file-pdf fs-1 text-muted mb-3"></i>
-                        <h4 class="fw-bold">This article needs a PDF file</h4>
-                        <p class="text-muted mb-3">The current stored file is not a direct PDF link, so it cannot be previewed here.</p>
-                        <a href="@content" target="_blank" class="btn btn-app-primary">Open File</a>
+                        <i class="fa-solid fa-file-lines fs-1 text-muted mb-3"></i>
+                        <h4 class="fw-bold">Legacy article content detected</h4>
+                        <p class="text-muted mb-3">This article was created before the TXT article flow. Open the stored file directly if you still need it.</p>
+                        <a href="@content" target="_blank" class="btn btn-app-primary">Open Stored File</a>
                     </div>
                 }
                 else
                 {
-                    <div class="alert alert-secondary rounded-4 border-0 mb-3">
-                        This is legacy article text saved before the PDF-only article flow. It still displays here for compatibility.
+                    <div class="alert alert-warning rounded-4 border-0">No readable article text is available for this lesson.</div>
+                }
+            }
+            else
+            {
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                    <div>
+                        <h4 class="fw-bold mb-1">Quiz Lesson</h4>
+                        <p class="text-muted mb-0">Answer the quiz below to complete this lesson and keep your progress moving.</p>
                     </div>
-                    <article class="metric-card p-4" style="line-height: 1.95;">
-                        @Html.Raw(Html.Encode(content)
-                            .Replace("\r\n", "<br /><br />")
-                            .Replace("\n", "<br /><br />"))
-                    </article>
+                    <span class="soft-badge">@Model.CurrentLesson.Quiz?.QuestionType</span>
+                </div>
+
+                @if (Model.CurrentLesson.Quiz == null)
+                {
+                    <div class="alert alert-warning rounded-4 border-0">This quiz could not be loaded correctly.</div>
+                }
+                else
+                {
+                    <div class="metric-card p-4">
+                        <div class="small text-muted text-uppercase mb-2">Question</div>
+                        <h5 class="fw-bold mb-4">@Model.CurrentLesson.Quiz.Prompt</h5>
+
+                        <form id="quizForm" class="d-flex flex-column gap-3">
+                            @if (Model.CurrentLesson.Quiz.QuestionType == QuizQuestionType.TrueFalse || Model.CurrentLesson.Quiz.QuestionType == QuizQuestionType.MultipleChoice)
+                            {
+                                foreach (var option in Model.CurrentLesson.Quiz.Options)
+                                {
+                                    <label class="border rounded-4 p-3 d-flex align-items-start gap-3">
+                                        <input class="form-check-input mt-1" type="radio" name="quizAnswer" value="@option" />
+                                        <span>@option</span>
+                                    </label>
+                                }
+                            }
+                            else
+                            {
+                                <div>
+                                    <label class="form-label fw-semibold">Your Written Answer</label>
+                                    <textarea class="form-control" id="writtenQuizAnswer" rows="5" placeholder="Write your answer here..."></textarea>
+                                </div>
+                            }
+
+                            <div id="quizFeedback" class="d-none alert rounded-4 border-0 mb-0"></div>
+                        </form>
+                    </div>
                 }
             }
         </section>
@@ -209,14 +265,14 @@
             @if (Model.IsOwnerPreview)
             {
                 <div class="alert alert-info rounded-3 border-0 mb-4">
-                    You are previewing your own course as the instructor. Playback and reading work here, but progress remains student-only.
+                    You are previewing your own course as the instructor. The player and reading experience work here, but progress remains student-only.
                 </div>
             }
 
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
                 <div>
                     <h4 class="fw-bold mb-1">Lesson Actions</h4>
-                    <p class="text-muted mb-0">Duration: @Model.CurrentLesson.Duration min &bull; @Model.CompletedLessons/@Model.TotalLessons lessons completed</p>
+                    <p class="text-muted mb-0">@Model.CompletedLessons/@Model.TotalLessons lessons completed &bull; Progress @Model.ProgressPercentage%</p>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
                     @if (!Model.CanTrackProgress)
@@ -227,20 +283,24 @@
                     {
                         <button class="btn btn-outline-success rounded-pill" disabled>Already Completed</button>
                     }
+                    else if (isQuizLesson)
+                    {
+                        <button id="submitQuizBtn" class="btn btn-app-primary" @(Model.CurrentLesson.Quiz == null ? "disabled" : null)>Submit Quiz</button>
+                    }
                     else
                     {
-                        <button id="markCompleteBtn" class="btn btn-app-primary" onclick="markCompleteAndNext(@Model.CurrentLesson.Id)">Mark as Completed</button>
+                        <button id="markCompleteBtn" class="btn btn-app-primary">Mark as Completed</button>
                     }
                 </div>
             </div>
         </section>
     </div>
 
-    <div class="col-lg-4">
+    <div class="col-xl-4">
         <section class="table-panel p-4 mb-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="fw-bold mb-0">@(isTrackingEnabled ? "Progress" : "Preview Mode")</h5>
-                <span class="fw-semibold text-primary">@(isTrackingEnabled ? $"{Model.ProgressPercentage}%" : "Instructor/Admin")</span>
+                <span class="fw-semibold text-primary">@(isTrackingEnabled ? $"{Model.ProgressPercentage}%" : "Preview")</span>
             </div>
             <div class="progress mb-3" style="height: 10px;">
                 <div class="progress-bar" role="progressbar" style="width: @(isTrackingEnabled ? $"{Model.ProgressPercentage}%" : "100%")" aria-valuenow="@(isTrackingEnabled ? Model.ProgressPercentage : 100)" aria-valuemin="0" aria-valuemax="100"></div>
@@ -248,8 +308,8 @@
             <div class="small fw-semibold mb-2">@Model.CompletedLessons / @Model.TotalLessons lessons completed</div>
             <div class="small text-muted">
                 @(isTrackingEnabled
-                    ? "Track lesson completion and return to this course from your My Learning dashboard."
-                    : "You are previewing the lesson content only. Progress tracking stays reserved for enrolled students.")
+                    ? "Complete each lesson here and return anytime from your My Learning dashboard."
+                    : "You can preview the learning flow here, but tracked progress stays reserved for enrolled students.")
             </div>
         </section>
 
@@ -258,19 +318,19 @@
             <div class="d-flex flex-column gap-2">
                 @foreach (var lesson in orderedLessons)
                 {
-                    var iconClass = lesson.Type == LessonType.Video ? "fa-circle-play" : lesson.Type == LessonType.PDF ? "fa-file-pdf" : "fa-file-lines";
+                    var lessonMeta = DescribeLessonType(lesson.Type);
                     var isCurrent = lesson.Id == Model.CurrentLesson.Id;
 
                     <a asp-action="Details" asp-route-id="@lesson.Id" class="metric-card p-3 text-decoration-none @(isCurrent ? "border-primary" : "")">
                         <div class="d-flex justify-content-between align-items-start gap-2">
                             <div class="d-flex gap-3">
-                                <i class="fa-solid @iconClass text-primary mt-1"></i>
+                                <i class="fa-solid @lessonMeta.Icon text-primary mt-1"></i>
                                 <div>
                                     <div class="fw-semibold text-dark">@lesson.Title</div>
                                     <div class="small text-muted">@lesson.SectionTitle &bull; @lesson.Duration min</div>
                                 </div>
                             </div>
-                            <span class="soft-badge">@(isCurrent ? "Now" : lesson.Type.ToString())</span>
+                            <span class="soft-badge">@(isCurrent ? "Now" : lessonMeta.Label)</span>
                         </div>
                     </a>
                 }
@@ -282,21 +342,25 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        async function markCompleteAndNext(lessonId) {
-            const btn = document.getElementById('markCompleteBtn');
-            if (!btn) {
+        async function completeLesson(url, loadingLabel, button) {
+            if (!button) {
                 return;
             }
 
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+            button.disabled = true;
+            const originalHtml = button.innerHTML;
+            button.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${loadingLabel}`;
 
             try {
-                const response = await fetch(`/Learning/MarkAsComplete/${lessonId}`, { method: 'POST' });
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
                 const data = await response.json();
 
                 if (!response.ok || !data.success) {
                     throw new Error(data.message || 'Could not save progress.');
+                }
+
+                if (data.message) {
+                    await Swal.fire('Success', data.message, 'success');
                 }
 
                 if (data.nextLessonId) {
@@ -304,13 +368,78 @@
                     return;
                 }
 
-                await Swal.fire('Great work', 'You completed the final lesson in this course.', 'success');
                 window.location.reload();
             } catch (error) {
                 await Swal.fire('Error', error.message, 'error');
-                btn.disabled = false;
-                btn.innerHTML = 'Mark as Completed';
+                button.disabled = false;
+                button.innerHTML = originalHtml;
             }
+        }
+
+        const markCompleteBtn = document.getElementById('markCompleteBtn');
+        if (markCompleteBtn) {
+            markCompleteBtn.addEventListener('click', function () {
+                completeLesson(`/Learning/MarkAsComplete/@Model.CurrentLesson.Id`, 'Saving...', markCompleteBtn);
+            });
+        }
+
+        const submitQuizBtn = document.getElementById('submitQuizBtn');
+        const quizFeedback = document.getElementById('quizFeedback');
+
+        if (submitQuizBtn) {
+            submitQuizBtn.addEventListener('click', async function () {
+                let answer = '';
+                const selectedOption = document.querySelector('input[name="quizAnswer"]:checked');
+                const writtenAnswer = document.getElementById('writtenQuizAnswer');
+
+                if (selectedOption) {
+                    answer = selectedOption.value;
+                } else if (writtenAnswer) {
+                    answer = writtenAnswer.value.trim();
+                }
+
+                if (!answer) {
+                    quizFeedback.className = 'alert alert-warning rounded-4 border-0 mb-0';
+                    quizFeedback.textContent = 'Please answer the quiz before submitting.';
+                    quizFeedback.classList.remove('d-none');
+                    return;
+                }
+
+                submitQuizBtn.disabled = true;
+                submitQuizBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Submitting...';
+
+                try {
+                    const response = await fetch(`/Learning/SubmitQuiz/@Model.CurrentLesson.Id`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ answer })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok || !data.success) {
+                        throw new Error(data.message || 'Could not submit the quiz.');
+                    }
+
+                    quizFeedback.className = 'alert alert-success rounded-4 border-0 mb-0';
+                    quizFeedback.textContent = data.message || 'Quiz submitted successfully.';
+                    quizFeedback.classList.remove('d-none');
+
+                    if (data.nextLessonId) {
+                        setTimeout(() => {
+                            window.location.href = `/Learning/Details/${data.nextLessonId}`;
+                        }, 900);
+                        return;
+                    }
+
+                    setTimeout(() => window.location.reload(), 900);
+                } catch (error) {
+                    quizFeedback.className = 'alert alert-danger rounded-4 border-0 mb-0';
+                    quizFeedback.textContent = error.message;
+                    quizFeedback.classList.remove('d-none');
+                    submitQuizBtn.disabled = false;
+                    submitQuizBtn.innerHTML = 'Submit Quiz';
+                }
+            });
         }
     </script>
 }

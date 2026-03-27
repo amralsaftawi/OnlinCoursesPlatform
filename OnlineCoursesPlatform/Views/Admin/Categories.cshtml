@@ -42,8 +42,8 @@
                                 <td>
                                     <form asp-action="UpdateCategory" method="post" class="d-flex gap-2">
                                         @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@category.Id" />
-                                        <input type="text" name="title" value="@category.Title" class="form-control" />
+                                        <input type="hidden" name="Id" value="@category.Id" />
+                                        <input type="text" name="Title" value="@category.Title" class="form-control" maxlength="100" required />
                                         <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill">Save</button>
                                     </form>
                                 </td>

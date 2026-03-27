@@ -1,26 +1,22 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.ViewEngines;
-using OnlineCoursesPlatform.Models.Enums;
+using Microsoft.AspNetCore.Identity;
 
-namespace OnlineCoursesPlatform.Models
+namespace OnlineCoursesPlatform.Models;
+
+public class User : IdentityUser<int>
 {
-    public class User: IdentityUser<int>
-    {
+    public string FirstName { get; set; } = string.Empty;
 
-        public string FirstName { get; set; }
+    public string LastName { get; set; } = string.Empty;
 
-        public string LastName { get; set; }
+    public string? ProfilePicture { get; set; } = "default-avatar.png";
 
-        public string? ProfilePicture { get; set; } = "default-avatar.png";
-        public AdminProfile AdminProfile { get; set; }
+    public AdminProfile? AdminProfile { get; set; }
 
-        public ICollection<Course> Courses { get; set; }
+    public ICollection<Course> Courses { get; set; } = [];
 
-        public ICollection<Enrollment> Enrollments { get; set; }
+    public ICollection<Enrollment> Enrollments { get; set; } = [];
 
-        public ICollection<UserProgress> Progresses { get; set; }
+    public ICollection<UserProgress> Progresses { get; set; } = [];
 
-        public ICollection<Review> Reviews { get; set; }
-    }
+    public ICollection<Review> Reviews { get; set; } = [];
 }
-

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using OnlinCoursesPlatform.Data;
+using OnlineCoursesPlatform.Data;
 using OnlineCoursesPlatform.Dtos;
 using OnlineCoursesPlatform.Infrastructure;
 using OnlineCoursesPlatform.Models;
@@ -13,6 +13,7 @@ namespace OnlineCoursesPlatform.Services
     public class AdminService : IAdminService
     {
         private static readonly string[] ManagedRoles = ["Student", "Instructor", "Admin"];
+        private static readonly string[] AllowedPrimaryRoles = ["Student", "Instructor"];
 
         private readonly AppDbContext _context;
         private readonly UserManager<User> _userManager;
@@ -74,30 +75,46 @@ namespace OnlineCoursesPlatform.Services
                 .ThenBy(u => u.LastName)
                 .ToListAsync();
 
-            var result = new List<AdminUserDto>();
+            var rolePairs = await (
+                    from userRole in _context.UserRoles.AsNoTracking()
+                    join role in _context.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                    select new
+                    {
+                        userRole.UserId,
+                        RoleName = role.Name ?? string.Empty
+                    })
+                .ToListAsync();
 
-            foreach (var user in users)
+            var rolesByUser = rolePairs
+                .GroupBy(item => item.UserId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.Select(item => item.RoleName)
+                        .Where(role => !string.IsNullOrWhiteSpace(role))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(role => role)
+                        .ToList());
+
+            return users.Select(user =>
             {
-                var roles = await _userManager.GetRolesAsync(user);
-                var primaryRole = roles.Contains("Instructor") ? "Instructor" : "Student";
+                var roles = rolesByUser.GetValueOrDefault(user.Id, ["Student"]);
+                var primaryRole = roles.Contains("Instructor", StringComparer.OrdinalIgnoreCase) ? "Instructor" : "Student";
 
-                result.Add(new AdminUserDto
+                return new AdminUserDto
                 {
                     Id = user.Id,
                     Name = $"{user.FirstName} {user.LastName}".Trim(),
                     Email = user.Email ?? string.Empty,
-                    Roles = roles.OrderBy(role => role).ToList(),
+                    Roles = roles,
                     PrimaryRole = primaryRole,
-                    IsAdmin = roles.Contains("Admin")
-                });
-            }
-
-            return result;
+                    IsAdmin = roles.Contains("Admin", StringComparer.OrdinalIgnoreCase)
+                };
+            }).ToList();
         }
 
         public async Task UpdateUserRolesAsync(int userId, string primaryRole, bool isAdmin, int actingAdminId)
         {
-            if (!ManagedRoles.Contains(primaryRole))
+            if (!AllowedPrimaryRoles.Contains(primaryRole))
                 throw new Exception("Invalid role selection.");
 
             var user = await _userManager.FindByIdAsync(userId.ToString());
@@ -108,28 +125,56 @@ namespace OnlineCoursesPlatform.Services
                 throw new Exception("You cannot remove your own admin role.");
 
             var currentRoles = await _userManager.GetRolesAsync(user);
-            var rolesToRemove = currentRoles.Where(role => role is "Instructor" or "Admin").ToList();
+            var desiredRoles = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Student" };
 
-            if (rolesToRemove.Any())
+            if (string.Equals(primaryRole, "Instructor", StringComparison.OrdinalIgnoreCase))
+            {
+                desiredRoles.Add("Instructor");
+            }
+
+            if (isAdmin)
+            {
+                desiredRoles.Add("Admin");
+            }
+
+            var rolesToRemove = currentRoles
+                .Where(role => ManagedRoles.Contains(role) && !desiredRoles.Contains(role))
+                .ToList();
+
+            if (rolesToRemove.Count != 0)
             {
                 var removeResult = await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
                 if (!removeResult.Succeeded)
                     throw new Exception(string.Join(", ", removeResult.Errors.Select(error => error.Description)));
             }
 
-            var rolesToAdd = new List<string> { "Student" };
-            if (string.Equals(primaryRole, "Instructor", StringComparison.OrdinalIgnoreCase))
+            var rolesToAdd = desiredRoles
+                .Where(role => !currentRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
+                .ToList();
+
+            if (rolesToAdd.Count != 0)
             {
-                rolesToAdd.Add("Instructor");
-            }
-            if (isAdmin)
-            {
-                rolesToAdd.Add("Admin");
+                var addResult = await _userManager.AddToRolesAsync(user, rolesToAdd);
+                if (!addResult.Succeeded)
+                    throw new Exception(string.Join(", ", addResult.Errors.Select(error => error.Description)));
             }
 
-            var addResult = await _userManager.AddToRolesAsync(user, rolesToAdd.Distinct());
-            if (!addResult.Succeeded)
-                throw new Exception(string.Join(", ", addResult.Errors.Select(error => error.Description)));
+            var adminProfile = await _context.AdminProfiles
+                .FirstOrDefaultAsync(profile => profile.ApplicationUserId == userId);
+
+            if (isAdmin && adminProfile == null)
+            {
+                _context.AdminProfiles.Add(new AdminProfile
+                {
+                    ApplicationUserId = userId
+                });
+                await _context.SaveChangesAsync();
+            }
+            else if (!isAdmin && adminProfile != null)
+            {
+                _context.AdminProfiles.Remove(adminProfile);
+                await _context.SaveChangesAsync();
+            }
         }
 
         public async Task DeleteUserAsync(int userId)
@@ -234,9 +279,9 @@ namespace OnlineCoursesPlatform.Services
             if (course == null)
                 throw new Exception("Course not found.");
 
-            var articleFilesToDelete = course.Sections
+            var lessonFilesToDelete = course.Sections
                 .SelectMany(section => section.Lessons)
-                .Where(lesson => lesson.Type == LessonType.Article && LessonContentStorage.IsLocalArticleUpload(lesson.ContentUrl))
+                .Where(lesson => LessonContentStorage.IsManagedLessonUpload(lesson.ContentUrl))
                 .Select(lesson => lesson.ContentUrl!)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -287,9 +332,9 @@ namespace OnlineCoursesPlatform.Services
             _context.Courses.Remove(course);
             await _context.SaveChangesAsync();
 
-            foreach (var articleFile in articleFilesToDelete)
+            foreach (var lessonFile in lessonFilesToDelete)
             {
-                LessonContentStorage.DeleteLocalArticleFile(_environment, articleFile);
+                LessonContentStorage.DeleteManagedLessonFile(_environment, lessonFile);
             }
         }
 

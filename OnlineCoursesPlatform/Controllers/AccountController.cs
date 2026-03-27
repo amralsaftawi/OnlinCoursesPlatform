@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OnlinCoursePlatform.ViewModels;
+using OnlineCoursesPlatform.ViewModels;
 using OnlineCoursesPlatform.Dtos;
 using OnlineCoursesPlatform.Services.Interfaces;
 
@@ -38,7 +38,9 @@ public class AccountController : Controller
             return View(model);
         }
 
-        return RedirectToAction("Index", "Home");
+        return model.IsInstructor
+            ? RedirectToAction("Index", "Instructor")
+            : RedirectToAction("GetMyEnrolledCourses", "Enrollment");
     }
 
     [HttpGet]

@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using OnlinCoursePlatform.Abstrctions;
-using OnlinCoursePlatform.Dtos;
-using OnlinCoursesPlatform.Data;
+using OnlineCoursesPlatform.Dtos;
+using OnlineCoursesPlatform.Data;
 using OnlineCoursesPlatform.Models.Enums;
+using OnlineCoursesPlatform.Services.Interfaces;
 using OnlineCoursesPlatform.ViewModels;
 
-namespace OnlinCoursePlatform.Services;
+namespace OnlineCoursesPlatform.Services;
 
 public class InstructorService(AppDbContext context) : IInstructorService
 {
@@ -95,7 +95,8 @@ public class InstructorService(AppDbContext context) : IInstructorService
         {
             InstructorId = instructor.Id,
             InstructorName = $"{instructor.FirstName} {instructor.LastName}".Trim(),
-            ProfilePicture = instructor.ProfilePicture,
+            Email = instructor.Email ?? string.Empty,
+            ProfilePicture = instructor.ProfilePicture ?? "default-avatar.png",
             TotalCourses = instructorCourses.Count,
             TotalStudents = await _context.Enrollments.CountAsync(enrollment => enrollment.Course.InstructorId == instructorId),
             ShowsAllCourses = canSeeAllCourses,

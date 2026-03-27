@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OnlinCoursePlatform.Abstrctions;
+using OnlineCoursesPlatform.Services.Interfaces;
 using System.Security.Claims;
 
 namespace OnlinCoursesPlatform.Controllers;

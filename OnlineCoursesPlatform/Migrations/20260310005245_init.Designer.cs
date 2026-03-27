@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using OnlinCoursesPlatform.Data;
+using OnlineCoursesPlatform.Data;
 
 #nullable disable
 
@@ -13,7 +13,7 @@ namespace OnlineCoursesPlatform.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     [Migration("20260310005245_init")]
-    partial class init
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

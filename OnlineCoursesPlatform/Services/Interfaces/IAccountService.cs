@@ -1,6 +1,6 @@
 using System.Security.Claims;
-using OnlinCoursePlatform.ViewModels;
 using OnlineCoursesPlatform.Dtos;
+using OnlineCoursesPlatform.ViewModels;
 
 namespace OnlineCoursesPlatform.Services.Interfaces;
 

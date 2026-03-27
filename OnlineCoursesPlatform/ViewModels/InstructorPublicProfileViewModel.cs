@@ -4,7 +4,8 @@ namespace OnlineCoursesPlatform.ViewModels
     {
         public int InstructorId { get; set; }
         public string InstructorName { get; set; } = string.Empty;
-        public string? ProfilePicture { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string ProfilePicture { get; set; } = "default-avatar.png";
         public int TotalCourses { get; set; }
         public int TotalStudents { get; set; }
         public bool ShowsAllCourses { get; set; }

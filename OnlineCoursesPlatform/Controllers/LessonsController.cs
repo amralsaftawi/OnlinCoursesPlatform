@@ -39,7 +39,10 @@ namespace OnlineCoursesPlatform.Controllers
         {
             if (!ModelState.IsValid)
             {
-                TempData["ErrorMessage"] = "Failed to add section. Please check your inputs.";
+                TempData["ErrorMessage"] = ModelState.Values
+                    .SelectMany(entry => entry.Errors)
+                    .Select(error => error.ErrorMessage)
+                    .FirstOrDefault() ?? "Failed to add section. Please check your inputs.";
                 return RedirectToAction(nameof(ManageContent), new { courseId = model.CourseId });
             }
 
@@ -53,7 +56,10 @@ namespace OnlineCoursesPlatform.Controllers
         {
             if (!ModelState.IsValid)
             {
-                TempData["ErrorMessage"] = "Failed to add lesson. Please check your inputs.";
+                TempData["ErrorMessage"] = ModelState.Values
+                    .SelectMany(entry => entry.Errors)
+                    .Select(error => error.ErrorMessage)
+                    .FirstOrDefault() ?? "Failed to add lesson. Please check your inputs.";
                 return RedirectToAction(nameof(ManageContent), new { courseId = model.CourseId });
             }
 
@@ -93,7 +99,10 @@ namespace OnlineCoursesPlatform.Controllers
         {
             if (!ModelState.IsValid)
             {
-                TempData["ErrorMessage"] = "Failed to update lesson. Please check your inputs.";
+                TempData["ErrorMessage"] = ModelState.Values
+                    .SelectMany(entry => entry.Errors)
+                    .Select(error => error.ErrorMessage)
+                    .FirstOrDefault() ?? "Failed to update lesson. Please check your inputs.";
                 return RedirectToAction(nameof(ManageContent), new { courseId = model.CourseId });
             }
 

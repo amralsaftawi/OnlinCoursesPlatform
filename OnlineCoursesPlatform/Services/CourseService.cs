@@ -3,13 +3,12 @@ using AutoMapper.QueryableExtensions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using OnlinCoursePlatform.Abstrctions;
-using OnlinCoursesPlatform.Data;
+using OnlineCoursesPlatform.Data;
 using OnlineCoursesPlatform.Dtos;
 using OnlineCoursesPlatform.Infrastructure;
 using OnlineCoursesPlatform.Models;
 using OnlineCoursesPlatform.Models.Enums;
-using OnlineCoursesPlatform.Repositories.Interface;
+using OnlineCoursesPlatform.Repositories.Interfaces;
 using OnlineCoursesPlatform.Services.Interfaces;
 using OnlineCoursesPlatform.ViewModels;
 
@@ -35,17 +34,17 @@ namespace OnlineCoursesPlatform.Services
             return await _courseRepository.GetAllAsync();
         }
 
-        public async Task<Course> GetCourseByIdAsync(int id)
+        public async Task<Course?> GetCourseByIdAsync(int id)
         {
             return await _courseRepository.GetByIdAsync(id);
         }
 
-        public async Task<Course> GetCourseWithDetailsAsync(int id)
+        public async Task<Course?> GetCourseWithDetailsAsync(int id)
         {
             return await _courseRepository.GetCourseWithDetailsAsync(id);
         }
 
-        public async Task<CourseDetailsViewModel> GetCourseDetailsProjectedAsync(int id)
+        public async Task<CourseDetailsViewModel?> GetCourseDetailsProjectedAsync(int id)
         {
             return await _courseRepository.GetQueryable()
                 .Where(c => c.Id == id)
@@ -228,9 +227,9 @@ namespace OnlineCoursesPlatform.Services
                 return false;
             }
 
-            var articleFilesToDelete = course.Sections
+            var lessonFilesToDelete = course.Sections
                 .SelectMany(section => section.Lessons)
-                .Where(lesson => lesson.Type == LessonType.Article && LessonContentStorage.IsLocalArticleUpload(lesson.ContentUrl))
+                .Where(lesson => LessonContentStorage.IsManagedLessonUpload(lesson.ContentUrl))
                 .Select(lesson => lesson.ContentUrl!)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -281,9 +280,9 @@ namespace OnlineCoursesPlatform.Services
             _context.Courses.Remove(course);
             await _context.SaveChangesAsync();
 
-            foreach (var articleFile in articleFilesToDelete)
+            foreach (var lessonFile in lessonFilesToDelete)
             {
-                LessonContentStorage.DeleteLocalArticleFile(_environment, articleFile);
+                LessonContentStorage.DeleteManagedLessonFile(_environment, lessonFile);
             }
 
             return true;

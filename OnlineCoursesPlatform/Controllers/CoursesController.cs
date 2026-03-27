@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using OnlinCoursesPlatform.Data;
+using OnlineCoursesPlatform.Data;
 using OnlineCoursesPlatform.Models;
 using OnlineCoursesPlatform.Models.Enums;
-using OnlineCoursesPlatform.Repositories.Interface;
+using OnlineCoursesPlatform.Repositories.Interfaces;
 using OnlineCoursesPlatform.Services.Interfaces;
 using OnlineCoursesPlatform.ViewModels;
 using System.Security.Claims;
@@ -304,6 +304,7 @@ namespace OnlineCoursesPlatform.Controllers
             var progressPercentage = 0;
             var completedLessons = 0;
             var hasReviewed = false;
+            Review? existingReview = null;
             var firstLessonId = course.Sections
                 .OrderBy(section => section.OrderIndex)
                 .SelectMany(section => section.Lessons.OrderBy(lesson => lesson.OrderIndex))
@@ -314,7 +315,8 @@ namespace OnlineCoursesPlatform.Controllers
             {
                 var enrollment = await _context.Enrollments.FirstOrDefaultAsync(e => e.StudentId.ToString() == userId && e.CourseId == id);
                 isEnrolled = enrollment != null;
-                hasReviewed = course.Reviews.Any(review => review.StudentId.ToString() == userId);
+                existingReview = course.Reviews.FirstOrDefault(review => review.StudentId.ToString() == userId);
+                hasReviewed = existingReview != null;
 
                 if (enrollment != null)
                 {
@@ -337,7 +339,8 @@ namespace OnlineCoursesPlatform.Controllers
                 CategoryName = course.Category?.Title ?? "General",
                 InstructorId = course.InstructorId,
                 InstructorName = $"{course.Instructor?.FirstName} {course.Instructor?.LastName}".Trim(),
-                InstructorProfilePicture = course.Instructor?.ProfilePicture,
+                InstructorEmail = course.Instructor?.Email ?? string.Empty,
+                InstructorProfilePicture = course.Instructor?.ProfilePicture ?? "/images/profiles/default-avatar.png",
                 Level = course.Level.ToString(),
                 Status = course.Status.ToString(),
                 Language = course.Language,
@@ -352,6 +355,11 @@ namespace OnlineCoursesPlatform.Controllers
                 CompletedLessons = completedLessons,
                 CanReview = isEnrolled && !isOwner,
                 HasReviewed = hasReviewed,
+                ReviewForm = new AddReviewViewModel
+                {
+                    Rating = existingReview?.Rating ?? 5,
+                    Comment = existingReview?.Comment ?? string.Empty
+                },
                 FirstLessonId = firstLessonId,
                 Tags = course.CourseTags
                     .Where(ct => ct.Tag != null)
@@ -388,8 +396,17 @@ namespace OnlineCoursesPlatform.Controllers
         [HttpPost]
         [Authorize(Roles = "Student")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddReview(int id, [Range(1, 5)] int rating, [Required] string comment)
+        public async Task<IActionResult> AddReview(int id, AddReviewViewModel model)
         {
+            if (!ModelState.IsValid)
+            {
+                TempData["Error"] = ModelState.Values
+                    .SelectMany(entry => entry.Errors)
+                    .Select(error => error.ErrorMessage)
+                    .FirstOrDefault() ?? "Please review your rating and comment, then try again.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userId))
             {
@@ -419,12 +436,6 @@ namespace OnlineCoursesPlatform.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            if (string.IsNullOrWhiteSpace(comment))
-            {
-                TempData["Error"] = "Please write a short review comment.";
-                return RedirectToAction(nameof(Details), new { id });
-            }
-
             var existingReview = course.Reviews.FirstOrDefault(review => review.StudentId == studentId);
             if (existingReview == null)
             {
@@ -432,16 +443,16 @@ namespace OnlineCoursesPlatform.Controllers
                 {
                     CourseId = id,
                     StudentId = studentId,
-                    Rating = rating,
-                    Comment = comment.Trim(),
+                    Rating = model.Rating,
+                    Comment = model.Comment.Trim(),
                     CreatedAt = DateTime.UtcNow
                 });
                 TempData["Success"] = "Your course review was added successfully.";
             }
             else
             {
-                existingReview.Rating = rating;
-                existingReview.Comment = comment.Trim();
+                existingReview.Rating = model.Rating;
+                existingReview.Comment = model.Comment.Trim();
                 existingReview.CreatedAt = DateTime.UtcNow;
                 TempData["Success"] = "Your course review was updated successfully.";
             }

@@ -1,6 +1,20 @@
 @model OnlineCoursesPlatform.ViewModels.ManageCourseContentViewModel
 @using OnlineCoursesPlatform.Models.Enums
 
+@functions {
+    private static (string Label, string Icon) DescribeLessonType(LessonType type)
+    {
+        return type switch
+        {
+            LessonType.Video => ("Video", "fa-circle-play"),
+            LessonType.PDF => ("PDF", "fa-file-pdf"),
+            LessonType.Article => ("Article TXT", "fa-file-lines"),
+            LessonType.Quiz => ("Quiz", "fa-circle-question"),
+            _ => ("Lesson", "fa-book-open")
+        };
+    }
+}
+
 @{
     ViewData["Title"] = "Manage Course Content";
 }
@@ -10,7 +24,7 @@
         <div>
             <span class="eyebrow mb-3"><i class="fa-solid fa-diagram-project"></i>Curriculum Builder</span>
             <h1 class="section-title mb-2">@Model.CourseTitle</h1>
-            <p class="section-subtitle mb-0">Build the teaching flow clearly: create sections, add video lessons, and attach article PDFs locally.</p>
+            <p class="section-subtitle mb-0">Build your course with sections, videos, PDFs, text articles, and quizzes while the total duration stays calculated automatically.</p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <a asp-controller="Instructor" asp-action="MyCourses" class="btn btn-app-secondary-dark">Back to Courses</a>
@@ -24,21 +38,21 @@
         <div class="metric-card p-4 h-100">
             <div class="text-muted small mb-2">Sections</div>
             <div class="display-6 fw-bold">@Model.SectionCount</div>
-            <div class="small text-muted">The main blocks of the course journey.</div>
+            <div class="small text-muted">Structure the course into clear stages.</div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="metric-card p-4 h-100">
             <div class="text-muted small mb-2">Lessons</div>
             <div class="display-6 fw-bold">@Model.LessonCount</div>
-            <div class="small text-muted">Videos and article PDFs inside all sections.</div>
+            <div class="small text-muted">Video, PDF, article, and quiz lessons.</div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="metric-card p-4 h-100">
             <div class="text-muted small mb-2">Total Duration</div>
             <div class="display-6 fw-bold">@Model.TotalDuration <span class="fs-6">min</span></div>
-            <div class="small text-muted">Calculated automatically from lesson durations.</div>
+            <div class="small text-muted">Updated automatically from lesson durations.</div>
         </div>
     </div>
 </section>
@@ -48,63 +62,72 @@
     <div class="empty-state">
         <i class="fa-regular fa-folder-open fs-1 text-muted mb-3"></i>
         <h4 class="fw-bold">No curriculum content yet</h4>
-        <p class="text-muted">Start with the first section, then add videos or article PDFs inside it.</p>
-        <button type="button" class="btn btn-app-primary" data-bs-toggle="modal" data-bs-target="#addSectionModal">Add Section</button>
+        <p class="text-muted">Start with a section, then add the lesson format that fits best.</p>
+        <button type="button" class="btn btn-app-primary mt-2" data-bs-toggle="modal" data-bs-target="#addSectionModal">Add Section</button>
     </div>
 }
 else
 {
-    <div class="accordion" id="curriculumAccordion">
+    <div class="d-flex flex-column gap-4">
         @foreach (var courseSection in Model.Sections)
         {
-            <div class="content-panel mb-3">
-                <h2 class="accordion-header" id="heading-@courseSection.Id">
-                    <button class="accordion-button fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@courseSection.Id" aria-expanded="true">
-                        Section @courseSection.OrderIndex: @courseSection.Title
-                    </button>
-                </h2>
-                <div id="collapse-@courseSection.Id" class="accordion-collapse collapse show">
-                    <div class="accordion-body">
-                        @if (!courseSection.Lessons.Any())
-                        {
-                            <p class="text-muted">No lessons in this section yet.</p>
-                        }
-                        else
-                        {
-                            <div class="d-flex flex-column gap-2 mb-3">
-                                @foreach (var lesson in courseSection.Lessons.OrderBy(l => l.OrderIndex))
-                                {
-                                    var lessonTypeLabel = lesson.Type == LessonType.Video ? "Video Lesson" : lesson.Type == LessonType.PDF ? "PDF Lesson" : "Article PDF";
+            <section class="content-panel p-4">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+                    <div>
+                        <div class="small text-muted text-uppercase mb-2">Section @courseSection.OrderIndex</div>
+                        <h4 class="fw-bold mb-1">@courseSection.Title</h4>
+                        <div class="small text-muted">@(courseSection.Lessons?.Count ?? 0) lesson@(courseSection.Lessons?.Count == 1 ? string.Empty : "s") in this section.</div>
+                    </div>
 
-                                    <div class="metric-card p-3">
-                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                                            <div>
-                                                <div class="fw-semibold">@lesson.OrderIndex. @lesson.Title</div>
-                                                <div class="small text-muted">@lessonTypeLabel &bull; @lesson.Duration min &bull; @(lesson.IsFree ? "Free Preview" : "Enrolled Students")</div>
-                                            </div>
-                                            <div class="d-flex gap-2 flex-wrap">
-                                                <button type="button" class="btn btn-sm btn-outline-warning rounded-pill edit-lesson-btn" data-lessonid="@lesson.Id">Edit</button>
-                                                <a asp-controller="Learning" asp-action="Details" asp-route-id="@lesson.Id" class="btn btn-sm btn-outline-info rounded-pill">Preview</a>
-                                                <form asp-controller="Lessons" asp-action="DeleteLesson" method="post" onsubmit="return confirm('Are you sure you want to delete this lesson?');">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="lessonId" value="@lesson.Id" />
-                                                    <input type="hidden" name="courseId" value="@Model.CourseId" />
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">Delete</button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
-
-                        <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-sm btn-app-primary launch-video-modal" data-bs-toggle="modal" data-bs-target="#addVideoLessonModal" data-sectionid="@courseSection.Id">Add Video</button>
-                            <button type="button" class="btn btn-sm btn-outline-dark launch-article-modal" data-bs-toggle="modal" data-bs-target="#addArticleLessonModal" data-sectionid="@courseSection.Id">Add Article PDF</button>
-                        </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm btn-app-primary launch-video-modal" data-bs-toggle="modal" data-bs-target="#addVideoLessonModal" data-sectionid="@courseSection.Id">Add Video</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger rounded-pill launch-pdf-modal" data-bs-toggle="modal" data-bs-target="#addPdfLessonModal" data-sectionid="@courseSection.Id">Add PDF</button>
+                        <button type="button" class="btn btn-sm btn-outline-info rounded-pill launch-article-modal" data-bs-toggle="modal" data-bs-target="#addArticleLessonModal" data-sectionid="@courseSection.Id">Add Article TXT</button>
+                        <button type="button" class="btn btn-sm btn-outline-warning rounded-pill launch-quiz-modal" data-bs-toggle="modal" data-bs-target="#addQuizLessonModal" data-sectionid="@courseSection.Id">Add Quiz</button>
                     </div>
                 </div>
-            </div>
+
+                @if (!(courseSection.Lessons?.Any() ?? false))
+                {
+                    <div class="empty-state py-4">
+                        <p class="text-muted mb-0">This section is ready for its first lesson.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-3">
+                        @foreach (var lesson in courseSection.Lessons.OrderBy(lesson => lesson.OrderIndex))
+                        {
+                            var meta = DescribeLessonType(lesson.Type);
+
+                            <article class="metric-card p-3">
+                                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                                    <div class="d-flex gap-3">
+                                        <div class="soft-badge">
+                                            <i class="fa-solid @meta.Icon"></i>@meta.Label
+                                        </div>
+                                        <div>
+                                            <div class="fw-semibold">@lesson.OrderIndex. @lesson.Title</div>
+                                            <div class="small text-muted mt-1">@lesson.Duration min &bull; @(lesson.IsFree ? "Free preview" : "Enrolled students only")</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <button type="button" class="btn btn-sm btn-outline-warning rounded-pill edit-lesson-btn" data-lessonid="@lesson.Id">Edit</button>
+                                        <a asp-controller="Learning" asp-action="Details" asp-route-id="@lesson.Id" class="btn btn-sm btn-outline-info rounded-pill">Preview</a>
+                                        <form asp-controller="Lessons" asp-action="DeleteLesson" method="post" onsubmit="return confirm('Are you sure you want to delete this lesson?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="lessonId" value="@lesson.Id" />
+                                            <input type="hidden" name="courseId" value="@Model.CourseId" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
         }
     </div>
 }
@@ -150,11 +173,13 @@ else
                         <label class="form-label fw-semibold">Video Title</label>
                         <input type="text" class="form-control" name="Title" required />
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Video URL</label>
                         <input type="url" class="form-control" name="ContentUrl" required placeholder="https://example.com/video.mp4 or https://youtube.com/watch?v=..." />
-                        <div class="form-text">Use a direct video file URL or a YouTube link.</div>
+                        <div class="form-text">Paste a direct video file URL, YouTube link, or embeddable player URL.</div>
                     </div>
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-semibold">Duration (Minutes)</label>
@@ -177,13 +202,65 @@ else
     </div>
 </div>
 
+<div class="modal fade" id="addPdfLessonModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-controller="Lessons" asp-action="AddLesson" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title">Add PDF Lesson</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="CourseId" value="@Model.CourseId" />
+                    <input type="hidden" name="SectionId" id="pdfSectionIdInput" />
+                    <input type="hidden" name="Type" value="@((int)LessonType.PDF)" />
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">PDF Lesson Title</label>
+                        <input type="text" class="form-control" name="Title" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Direct PDF URL</label>
+                        <input type="url" class="form-control" name="ContentUrl" placeholder="https://example.com/ebook.pdf" />
+                        <div class="form-text">Use a direct PDF link, or leave it empty and upload the file locally below.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Upload PDF</label>
+                        <input type="file" class="form-control" name="PdfFile" accept=".pdf,application/pdf" />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Duration (Minutes)</label>
+                            <input type="number" class="form-control" name="Duration" required min="1" value="5" />
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="IsFree" value="true" id="isFreePdf" />
+                                <label class="form-check-label" for="isFreePdf">Free Preview</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-app-secondary-dark" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-app-primary">Save PDF Lesson</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="addArticleLessonModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <form asp-controller="Lessons" asp-action="AddLesson" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
                 <div class="modal-header">
-                    <h5 class="modal-title">Add Article PDF</h5>
+                    <h5 class="modal-title">Add Article Lesson</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -195,11 +272,13 @@ else
                         <label class="form-label fw-semibold">Article Title</label>
                         <input type="text" class="form-control" name="Title" required />
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Article PDF</label>
-                        <input type="file" class="form-control" name="ArticleFile" accept=".pdf,application/pdf" required />
-                        <div class="form-text">Upload a local `.pdf` file. The lesson will render that PDF inside the learning screen.</div>
+                        <label class="form-label fw-semibold">Upload TXT File</label>
+                        <input type="file" class="form-control" name="ArticleFile" accept=".txt,text/plain" required />
+                        <div class="form-text">Article lessons use local `.txt` uploads so the content can render directly inside the learning page.</div>
                     </div>
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-semibold">Duration (Minutes)</label>
@@ -215,7 +294,107 @@ else
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-app-secondary-dark" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-app-primary">Save Article PDF</button>
+                    <button type="submit" class="btn btn-app-primary">Save Article Lesson</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addQuizLessonModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form asp-controller="Lessons" asp-action="AddLesson" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Quiz Lesson</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="CourseId" value="@Model.CourseId" />
+                    <input type="hidden" name="SectionId" id="quizSectionIdInput" />
+                    <input type="hidden" name="Type" value="@((int)LessonType.Quiz)" />
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Quiz Title</label>
+                            <input type="text" class="form-control" name="Title" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Quiz Type</label>
+                            <select class="form-select" name="QuizMode" id="quizModeSelect" required>
+                                <option value="@((int)QuizQuestionType.TrueFalse)">True / False</option>
+                                <option value="@((int)QuizQuestionType.MultipleChoice)">Choose</option>
+                                <option value="@((int)QuizQuestionType.Written)">Written</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Question Prompt</label>
+                            <textarea class="form-control" rows="3" name="QuizPrompt" required placeholder="Ask the learner one clear question."></textarea>
+                        </div>
+                    </div>
+
+                    <div id="quizTrueFalseFields" class="mt-4">
+                        <label class="form-label fw-semibold">Correct Answer</label>
+                        <select class="form-select" name="QuizCorrectTrueFalse">
+                            <option value="true">True</option>
+                            <option value="false">False</option>
+                        </select>
+                    </div>
+
+                    <div id="quizMultipleChoiceFields" class="mt-4 d-none">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Option A</label>
+                                <input type="text" class="form-control" name="QuizOptionA" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Option B</label>
+                                <input type="text" class="form-control" name="QuizOptionB" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Option C</label>
+                                <input type="text" class="form-control" name="QuizOptionC" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Option D</label>
+                                <input type="text" class="form-control" name="QuizOptionD" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Correct Option</label>
+                                <select class="form-select" name="QuizCorrectOption">
+                                    <option value="">Select</option>
+                                    <option value="1">Option A</option>
+                                    <option value="2">Option B</option>
+                                    <option value="3">Option C</option>
+                                    <option value="4">Option D</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="quizWrittenFields" class="mt-4 d-none">
+                        <label class="form-label fw-semibold">Reference Answer</label>
+                        <textarea class="form-control" rows="4" name="QuizReferenceAnswer" placeholder="Optional guidance shown after the learner submits a written response."></textarea>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-semibold">Duration (Minutes)</label>
+                            <input type="number" class="form-control" name="Duration" required min="1" value="5" />
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="IsFree" value="true" id="isFreeQuiz" />
+                                <label class="form-check-label" for="isFreeQuiz">Free Preview</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-app-secondary-dark" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-app-primary">Save Quiz Lesson</button>
                 </div>
             </form>
         </div>
@@ -223,7 +402,7 @@ else
 </div>
 
 <div class="modal fade" id="editLessonModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form asp-controller="Lessons" asp-action="EditLesson" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
@@ -235,29 +414,102 @@ else
                     <input type="hidden" name="CourseId" value="@Model.CourseId" />
                     <input type="hidden" name="SectionId" id="editSectionIdInput" />
                     <input type="hidden" name="LessonId" id="editLessonIdInput" />
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Lesson Title</label>
-                        <input type="text" class="form-control" id="editLessonTitle" name="Title" required />
+
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Lesson Title</label>
+                            <input type="text" class="form-control" id="editLessonTitle" name="Title" required />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Lesson Type</label>
+                            <select class="form-select" id="editLessonType" name="Type" required>
+                                <option value="@((int)LessonType.Video)">Video</option>
+                                <option value="@((int)LessonType.PDF)">PDF</option>
+                                <option value="@((int)LessonType.Article)">Article</option>
+                                <option value="@((int)LessonType.Quiz)">Quiz</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Lesson Type</label>
-                        <select class="form-select" id="editLessonType" name="Type" required>
-                            <option value="@((int)LessonType.Video)">Video</option>
-                            <option value="@((int)LessonType.Article)">Article</option>
-                            <option value="@((int)LessonType.PDF)">PDF</option>
-                        </select>
+
+                    <div id="editContentUrlWrapper" class="mt-4">
+                        <label class="form-label fw-semibold" id="editContentLabel">Content URL</label>
+                        <input type="text" class="form-control" id="editContentUrl" name="ContentUrl" />
+                        <div class="form-text" id="editContentHelp">Paste the direct content URL for this lesson.</div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold" id="editContentLabel">Lesson Content</label>
-                        <input type="text" class="form-control" id="editContentUrl" name="ContentUrl" required />
-                        <div class="form-text" id="editContentHelp">For video/PDF use a URL. For article PDFs, keep the current PDF path or replace it with a new local PDF file.</div>
+
+                    <div id="editPdfFileWrapper" class="mt-4 d-none">
+                        <label class="form-label fw-semibold">Replace PDF Upload</label>
+                        <input type="file" class="form-control" name="PdfFile" id="editPdfFileInput" accept=".pdf,application/pdf" />
                     </div>
-                    <div class="mb-3 d-none" id="editArticleFileWrapper">
-                        <label class="form-label fw-semibold">Replace Article PDF</label>
-                        <input type="file" class="form-control" name="ArticleFile" id="editArticleFileInput" accept=".pdf,application/pdf" />
-                        <div class="form-text">Optional. Upload a new local PDF only if you want to replace the currently attached article PDF.</div>
+
+                    <div id="editArticleFileWrapper" class="mt-4 d-none">
+                        <label class="form-label fw-semibold">Replace Article TXT File</label>
+                        <input type="file" class="form-control" name="ArticleFile" id="editArticleFileInput" accept=".txt,text/plain" />
                     </div>
-                    <div class="row">
+
+                    <div id="editQuizFields" class="mt-4 d-none">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Quiz Type</label>
+                                <select class="form-select" id="editQuizMode" name="QuizMode">
+                                    <option value="@((int)QuizQuestionType.TrueFalse)">True / False</option>
+                                    <option value="@((int)QuizQuestionType.MultipleChoice)">Choose</option>
+                                    <option value="@((int)QuizQuestionType.Written)">Written</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-semibold">Question Prompt</label>
+                                <textarea class="form-control" rows="3" id="editQuizPrompt" name="QuizPrompt"></textarea>
+                            </div>
+                        </div>
+
+                        <div id="editQuizTrueFalseFields" class="mt-4">
+                            <label class="form-label fw-semibold">Correct Answer</label>
+                            <select class="form-select" id="editQuizCorrectTrueFalse" name="QuizCorrectTrueFalse">
+                                <option value="">Select</option>
+                                <option value="true">True</option>
+                                <option value="false">False</option>
+                            </select>
+                        </div>
+
+                        <div id="editQuizMultipleChoiceFields" class="mt-4 d-none">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Option A</label>
+                                    <input type="text" class="form-control" id="editQuizOptionA" name="QuizOptionA" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Option B</label>
+                                    <input type="text" class="form-control" id="editQuizOptionB" name="QuizOptionB" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Option C</label>
+                                    <input type="text" class="form-control" id="editQuizOptionC" name="QuizOptionC" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Option D</label>
+                                    <input type="text" class="form-control" id="editQuizOptionD" name="QuizOptionD" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Correct Option</label>
+                                    <select class="form-select" id="editQuizCorrectOption" name="QuizCorrectOption">
+                                        <option value="">Select</option>
+                                        <option value="1">Option A</option>
+                                        <option value="2">Option B</option>
+                                        <option value="3">Option C</option>
+                                        <option value="4">Option D</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="editQuizWrittenFields" class="mt-4 d-none">
+                            <label class="form-label fw-semibold">Reference Answer</label>
+                            <textarea class="form-control" rows="4" id="editQuizReferenceAnswer" name="QuizReferenceAnswer"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-semibold">Duration (Minutes)</label>
                             <input type="number" class="form-control" id="editDuration" name="Duration" required min="1" />
@@ -281,58 +533,93 @@ else
 
 @section Scripts {
     <script>
-        document.querySelectorAll('.launch-video-modal').forEach(button => {
-            button.addEventListener('click', function () {
-                document.getElementById('videoSectionIdInput').value = this.getAttribute('data-sectionid');
+        function assignSectionId(selector, inputId) {
+            document.querySelectorAll(selector).forEach(button => {
+                button.addEventListener('click', function () {
+                    document.getElementById(inputId).value = this.getAttribute('data-sectionid');
+                });
             });
-        });
-
-        document.querySelectorAll('.launch-article-modal').forEach(button => {
-            button.addEventListener('click', function () {
-                document.getElementById('articleSectionIdInput').value = this.getAttribute('data-sectionid');
-            });
-        });
-
-        function configureEditContentField(selectElement, labelElement, helpElement, inputElement, fileWrapper, fileInput) {
-            const selectedType = parseInt(selectElement.value, 10);
-
-            if (selectedType === @((int)LessonType.Article)) {
-                labelElement.textContent = 'Current Article PDF';
-                helpElement.textContent = 'Keep the current attached PDF path or upload a replacement `.pdf` file below.';
-                inputElement.removeAttribute('required');
-                inputElement.setAttribute('readonly', 'readonly');
-                inputElement.placeholder = 'Current article PDF path';
-                fileWrapper.classList.remove('d-none');
-            } else if (selectedType === @((int)LessonType.PDF)) {
-                labelElement.textContent = 'PDF File URL';
-                helpElement.textContent = 'Paste a direct PDF file URL for preview inside the platform.';
-                inputElement.setAttribute('required', 'required');
-                inputElement.removeAttribute('readonly');
-                inputElement.placeholder = 'https://example.com/file.pdf';
-                fileWrapper.classList.add('d-none');
-                fileInput.value = '';
-            } else {
-                labelElement.textContent = 'Video URL';
-                helpElement.textContent = 'Paste a direct video URL or a YouTube link.';
-                inputElement.setAttribute('required', 'required');
-                inputElement.removeAttribute('readonly');
-                inputElement.placeholder = 'https://example.com/video.mp4';
-                fileWrapper.classList.add('d-none');
-                fileInput.value = '';
-            }
         }
+
+        function configureQuizFields(modeValue, trueFalseContainer, multipleChoiceContainer, writtenContainer) {
+            const mode = parseInt(modeValue, 10);
+            trueFalseContainer.classList.toggle('d-none', mode !== @((int)QuizQuestionType.TrueFalse));
+            multipleChoiceContainer.classList.toggle('d-none', mode !== @((int)QuizQuestionType.MultipleChoice));
+            writtenContainer.classList.toggle('d-none', mode !== @((int)QuizQuestionType.Written));
+        }
+
+        assignSectionId('.launch-video-modal', 'videoSectionIdInput');
+        assignSectionId('.launch-pdf-modal', 'pdfSectionIdInput');
+        assignSectionId('.launch-article-modal', 'articleSectionIdInput');
+        assignSectionId('.launch-quiz-modal', 'quizSectionIdInput');
+
+        const quizModeSelect = document.getElementById('quizModeSelect');
+        const quizTrueFalseFields = document.getElementById('quizTrueFalseFields');
+        const quizMultipleChoiceFields = document.getElementById('quizMultipleChoiceFields');
+        const quizWrittenFields = document.getElementById('quizWrittenFields');
+
+        quizModeSelect.addEventListener('change', function () {
+            configureQuizFields(this.value, quizTrueFalseFields, quizMultipleChoiceFields, quizWrittenFields);
+        });
+        configureQuizFields(quizModeSelect.value, quizTrueFalseFields, quizMultipleChoiceFields, quizWrittenFields);
 
         const editLessonModal = new bootstrap.Modal(document.getElementById('editLessonModal'));
         const editLessonType = document.getElementById('editLessonType');
+        const editContentUrlWrapper = document.getElementById('editContentUrlWrapper');
         const editContentLabel = document.getElementById('editContentLabel');
         const editContentHelp = document.getElementById('editContentHelp');
-        const editContentInput = document.getElementById('editContentUrl');
+        const editContentUrl = document.getElementById('editContentUrl');
+        const editPdfFileWrapper = document.getElementById('editPdfFileWrapper');
         const editArticleFileWrapper = document.getElementById('editArticleFileWrapper');
-        const editArticleFileInput = document.getElementById('editArticleFileInput');
+        const editQuizFields = document.getElementById('editQuizFields');
+        const editQuizMode = document.getElementById('editQuizMode');
+        const editQuizTrueFalseFields = document.getElementById('editQuizTrueFalseFields');
+        const editQuizMultipleChoiceFields = document.getElementById('editQuizMultipleChoiceFields');
+        const editQuizWrittenFields = document.getElementById('editQuizWrittenFields');
+
+        function configureEditTypeFields() {
+            const lessonType = parseInt(editLessonType.value, 10);
+            const isVideo = lessonType === @((int)LessonType.Video);
+            const isPdf = lessonType === @((int)LessonType.PDF);
+            const isArticle = lessonType === @((int)LessonType.Article);
+            const isQuiz = lessonType === @((int)LessonType.Quiz);
+
+            editContentUrlWrapper.classList.toggle('d-none', isQuiz);
+            editPdfFileWrapper.classList.toggle('d-none', !isPdf);
+            editArticleFileWrapper.classList.toggle('d-none', !isArticle);
+            editQuizFields.classList.toggle('d-none', !isQuiz);
+
+            if (isVideo) {
+                editContentLabel.textContent = 'Video URL';
+                editContentHelp.textContent = 'Paste a direct video URL, YouTube link, or embeddable player URL.';
+                editContentUrl.readOnly = false;
+                editContentUrl.placeholder = 'https://example.com/video.mp4';
+            } else if (isPdf) {
+                editContentLabel.textContent = 'PDF Source';
+                editContentHelp.textContent = 'Keep the current PDF path, paste a new direct PDF URL, or upload a replacement PDF below.';
+                editContentUrl.readOnly = false;
+                editContentUrl.placeholder = 'https://example.com/file.pdf or /uploads/pdfs/your-file.pdf';
+            } else if (isArticle) {
+                editContentLabel.textContent = 'Current Article Source';
+                editContentHelp.textContent = 'Keep the current article text file path or upload a replacement `.txt` file below.';
+                editContentUrl.readOnly = true;
+                editContentUrl.placeholder = '/uploads/articles/current-article.txt';
+            }
+
+            if (isQuiz) {
+                configureQuizFields(editQuizMode.value, editQuizTrueFalseFields, editQuizMultipleChoiceFields, editQuizWrittenFields);
+            }
+        }
+
+        editLessonType.addEventListener('change', configureEditTypeFields);
+        editQuizMode.addEventListener('change', function () {
+            configureQuizFields(this.value, editQuizTrueFalseFields, editQuizMultipleChoiceFields, editQuizWrittenFields);
+        });
 
         document.querySelectorAll('.edit-lesson-btn').forEach(button => {
             button.addEventListener('click', function () {
                 const lessonId = this.getAttribute('data-lessonid');
+
                 fetch(`/Lessons/GetLessonForEdit?lessonId=${lessonId}`)
                     .then(response => {
                         if (!response.ok) {
@@ -346,18 +633,27 @@ else
                         document.getElementById('editSectionIdInput').value = data.sectionId;
                         document.getElementById('editLessonTitle').value = data.title;
                         document.getElementById('editLessonType').value = data.type;
-                        document.getElementById('editContentUrl').value = data.contentUrl;
+                        document.getElementById('editContentUrl').value = data.type === @((int)LessonType.Quiz) ? '' : (data.contentUrl || '');
                         document.getElementById('editDuration').value = data.duration;
                         document.getElementById('editIsFree').checked = data.isFree;
-                        configureEditContentField(editLessonType, editContentLabel, editContentHelp, editContentInput, editArticleFileWrapper, editArticleFileInput);
+
+                        document.getElementById('editQuizMode').value = data.quizQuestionType ?? @((int)QuizQuestionType.TrueFalse);
+                        document.getElementById('editQuizPrompt').value = data.quizPrompt || '';
+                        document.getElementById('editQuizOptionA').value = data.quizOptionA || '';
+                        document.getElementById('editQuizOptionB').value = data.quizOptionB || '';
+                        document.getElementById('editQuizOptionC').value = data.quizOptionC || '';
+                        document.getElementById('editQuizOptionD').value = data.quizOptionD || '';
+                        document.getElementById('editQuizCorrectOption').value = data.quizCorrectOption || '';
+                        document.getElementById('editQuizCorrectTrueFalse').value = data.quizCorrectTrueFalse === null ? '' : data.quizCorrectTrueFalse.toString();
+                        document.getElementById('editQuizReferenceAnswer').value = data.quizReferenceAnswer || '';
+                        document.getElementById('editPdfFileInput').value = '';
+                        document.getElementById('editArticleFileInput').value = '';
+
+                        configureEditTypeFields();
                         editLessonModal.show();
                     })
                     .catch(() => alert('Unable to fetch lesson information.'));
             });
-        });
-
-        editLessonType.addEventListener('change', function () {
-            configureEditContentField(editLessonType, editContentLabel, editContentHelp, editContentInput, editArticleFileWrapper, editArticleFileInput);
         });
     </script>
 }

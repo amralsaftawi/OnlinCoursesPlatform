@@ -1,15 +1,11 @@
-﻿using OnlinCoursesPlatform.Data;
+namespace OnlineCoursesPlatform.Models;
 
-namespace OnlineCoursesPlatform.Models
+public class AdminProfile
 {
-    public class AdminProfile
-    {
-        public int Id { get; set; }
+    public int Id { get; set; }
 
-        // FK
-        public int ApplicationUserId { get; set; }
-        public User ApplicationUser { get; set; }
+    public int ApplicationUserId { get; set; }
+    public User ApplicationUser { get; set; } = null!;
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-    }
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
 }

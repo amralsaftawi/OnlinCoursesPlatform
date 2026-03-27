@@ -1,4 +1,4 @@
-@using OnlinCoursePlatform.ViewModels
+@using OnlineCoursesPlatform.ViewModels
 @model EditProfileViewModel
 
 <div class="container py-5">
@@ -10,35 +10,35 @@
                 </div>
                 <div class="card-body p-4">
                     <form asp-action="EditProfile" method="post" enctype="multipart/form-data">
+                        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
                         <div class="row justify-content-center">
                             <div class="col-12 text-center mb-4">
                                 <div class="position-relative d-inline-block">
-                                    @* عرض الصورة الحالية من السيرفر *@
-                                    <img src="~/images/profiles/@(Model.ExistingImageUrl ?? "default-avatar.png")" 
-                                         class="rounded-circle shadow border border-3 border-white" 
-                                         width="130" height="130" 
-                                         id="previewImg" 
+                                    <img src="~/images/profiles/@(Model.ExistingImageUrl ?? "default-avatar.png")"
+                                         class="rounded-circle shadow border border-3 border-white"
+                                         width="130" height="130"
+                                         id="previewImg"
                                          style="object-fit: cover;">
-                                    
+
                                     <label for="imgUpload" class="btn btn-primary position-absolute bottom-0 end-0 rounded-circle shadow-sm p-2">
                                         <i class="fas fa-camera"></i>
                                     </label>
                                     <input type="file" asp-for="ProfileImage" id="imgUpload" hidden accept="image/*" onchange="previewImage(this)">
                                 </div>
+                                <span asp-validation-for="ProfileImage" class="text-danger small d-block mt-2"></span>
                                 <p class="text-muted small mt-2">Click the camera to update photo</p>
                             </div>
 
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">First Name</label>
+                                <label asp-for="FirstName" class="form-label fw-bold"></label>
                                 <input asp-for="FirstName" class="form-control rounded-pill px-3">
+                                <span asp-validation-for="FirstName" class="text-danger small"></span>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Last Name</label>
+                                <label asp-for="LastName" class="form-label fw-bold"></label>
                                 <input asp-for="LastName" class="form-control rounded-pill px-3">
-                            </div>
-                            <div class="col-12 mb-4">
-                                <label class="form-label fw-bold">Brief Bio (Optional)</label>
-                                <textarea asp-for="Bio" class="form-control rounded-4" rows="4" placeholder="Tell students about your experience..."></textarea>
+                                <span asp-validation-for="LastName" class="text-danger small"></span>
                             </div>
                         </div>
 
@@ -55,11 +55,12 @@
 </div>
 
 @section Scripts {
+    <partial name="_ValidationScriptsPartial" />
     <script>
         function previewImage(input) {
             if (input.files && input.files[0]) {
                 var reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     document.getElementById('previewImg').src = e.target.result;
                 }
                 reader.readAsDataURL(input.files[0]);

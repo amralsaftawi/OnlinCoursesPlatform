@@ -2,7 +2,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
-using OnlinCoursePlatform.ViewModels;
+using OnlineCoursesPlatform.ViewModels;
 using OnlineCoursesPlatform.Dtos;
 using OnlineCoursesPlatform.Models;
 using OnlineCoursesPlatform.Services.Interfaces;
@@ -126,6 +126,26 @@ public class AccountService : IAccountService
                 Succeeded = true,
                 RedirectAction = "Index",
                 RedirectController = "Admin"
+            };
+        }
+
+        if (roles.Contains("Instructor"))
+        {
+            return new LoginResultDto
+            {
+                Succeeded = true,
+                RedirectAction = "Index",
+                RedirectController = "Instructor"
+            };
+        }
+
+        if (roles.Contains("Student"))
+        {
+            return new LoginResultDto
+            {
+                Succeeded = true,
+                RedirectAction = "GetMyEnrolledCourses",
+                RedirectController = "Enrollment"
             };
         }
 

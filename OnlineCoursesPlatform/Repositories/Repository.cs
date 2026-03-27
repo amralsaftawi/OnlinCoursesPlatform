@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using OnlinCoursesPlatform.Data;
+using OnlineCoursesPlatform.Data;
 using OnlineCoursesPlatform.Models;
-using OnlineCoursesPlatform.Repositories.Interface;
+using OnlineCoursesPlatform.Repositories.Interfaces;
 
 namespace OnlineCoursesPlatform.Repositories
 {
@@ -26,7 +26,7 @@ namespace OnlineCoursesPlatform.Repositories
             return await _dbSet.ToListAsync();
         }
 
-        public async Task<T> GetByIdAsync(int id)
+        public async Task<T?> GetByIdAsync(int id)
         {
             return await _dbSet.FindAsync(id);
         }

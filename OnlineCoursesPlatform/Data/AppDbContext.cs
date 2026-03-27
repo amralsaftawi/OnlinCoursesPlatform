@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using OnlineCoursesPlatform.Models;
 
-namespace OnlinCoursesPlatform.Data;
+namespace OnlineCoursesPlatform.Data;
 
 public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
 {
@@ -13,7 +13,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     }
 
     public DbSet<Course> Courses => Set<Course>();
-    public DbSet<AdminProfile> AdminProfiles { get; set; }
+    public DbSet<AdminProfile> AdminProfiles { get; set; } = null!;
     public DbSet<Section> Sections => Set<Section>();
     public DbSet<Lesson> Lessons => Set<Lesson>();
     public DbSet<Category> Categories => Set<Category>();
@@ -25,10 +25,10 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<UserProgress> UserProgresses => Set<UserProgress>();
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
 
-           modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
-        }
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+    }
 }

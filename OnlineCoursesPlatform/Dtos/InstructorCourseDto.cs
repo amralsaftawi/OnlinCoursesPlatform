@@ -1,4 +1,4 @@
-namespace OnlinCoursePlatform.Dtos;
+namespace OnlineCoursesPlatform.Dtos;
 
 public class InstructorCourseDto
 {

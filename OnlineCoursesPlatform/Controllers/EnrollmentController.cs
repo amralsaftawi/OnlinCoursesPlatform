@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OnlinCoursePlatform.Dtos;
-using OnlineCoursesPlatform.Repositories.Interface;
+using OnlineCoursesPlatform.Dtos;
 using OnlineCoursesPlatform.Services.Interfaces;
 using OnlineCoursesPlatform.ViewModels;
 using System.Security.Claims;

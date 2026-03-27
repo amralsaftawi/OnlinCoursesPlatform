@@ -19,14 +19,17 @@
                 <div class="mb-3">
                     <label asp-for="Name" class="form-label fw-semibold">Name</label>
                     <input asp-for="Name" class="form-control" placeholder="US Dollar" />
+                    <span asp-validation-for="Name" class="text-danger small"></span>
                 </div>
                 <div class="mb-3">
                     <label asp-for="Code" class="form-label fw-semibold">Code</label>
                     <input asp-for="Code" class="form-control" placeholder="USD" />
+                    <span asp-validation-for="Code" class="text-danger small"></span>
                 </div>
                 <div class="mb-3">
                     <label asp-for="Symbol" class="form-label fw-semibold">Symbol</label>
                     <input asp-for="Symbol" class="form-control" placeholder="$" />
+                    <span asp-validation-for="Symbol" class="text-danger small"></span>
                 </div>
                 <button type="submit" class="btn btn-app-primary w-100">Add Currency</button>
             </form>
@@ -49,15 +52,15 @@
                                 <td>
                                     <form asp-action="UpdateCurrency" method="post" class="row g-2 align-items-center">
                                         @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@currency.Id" />
+                                        <input type="hidden" name="Id" value="@currency.Id" />
                                         <div class="col-md-6">
-                                            <input type="text" name="name" value="@currency.Name" class="form-control form-control-sm" />
+                                            <input type="text" name="Name" value="@currency.Name" class="form-control form-control-sm" maxlength="50" required />
                                         </div>
                                         <div class="col-md-3">
-                                            <input type="text" name="code" value="@currency.Code" class="form-control form-control-sm" />
+                                            <input type="text" name="Code" value="@currency.Code" class="form-control form-control-sm" maxlength="3" required />
                                         </div>
                                         <div class="col-md-3">
-                                            <input type="text" name="symbol" value="@currency.Symbol" class="form-control form-control-sm" />
+                                            <input type="text" name="Symbol" value="@currency.Symbol" class="form-control form-control-sm" maxlength="5" required />
                                         </div>
                                         <div class="col-12">
                                             <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill">Save</button>

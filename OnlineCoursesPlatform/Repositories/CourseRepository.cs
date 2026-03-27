@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using OnlinCoursesPlatform.Data;
+using OnlineCoursesPlatform.Data;
 using OnlineCoursesPlatform.Models;
-using OnlineCoursesPlatform.Repositories.Interface;
+using OnlineCoursesPlatform.Repositories.Interfaces;
 using OnlineCoursesPlatform.ViewModels;
 
 namespace OnlineCoursesPlatform.Repositories
@@ -33,7 +33,7 @@ namespace OnlineCoursesPlatform.Repositories
                 .ToListAsync();
         }
 
-        public async Task<Course> GetCourseWithDetailsAsync(int id)
+        public async Task<Course?> GetCourseWithDetailsAsync(int id)
         {
             return await _dbSet
                 .Include(c => c.Instructor)

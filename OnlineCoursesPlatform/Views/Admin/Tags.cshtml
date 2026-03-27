@@ -42,8 +42,8 @@
                                 <td>
                                     <form asp-action="UpdateTag" method="post" class="d-flex gap-2">
                                         @Html.AntiForgeryToken()
-                                        <input type="hidden" name="id" value="@tag.Id" />
-                                        <input type="text" name="name" value="@tag.Name" class="form-control" />
+                                        <input type="hidden" name="Id" value="@tag.Id" />
+                                        <input type="text" name="Name" value="@tag.Name" class="form-control" maxlength="50" required />
                                         <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill">Save</button>
                                     </form>
                                 </td>

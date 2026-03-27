@@ -4,7 +4,7 @@ namespace OnlineCoursesPlatform.ViewModels
     {
         public int CourseId { get; set; }
         public string Title { get; set; } = string.Empty;
-        public string? ImageUrl { get; set; }
+        public string ImageUrl { get; set; } = "/images/default-course.jpg";
         public int ProgressPercentage { get; set; }
         public DateTime EnrolledAt { get; set; }
         public int? ContinueLessonId { get; set; }

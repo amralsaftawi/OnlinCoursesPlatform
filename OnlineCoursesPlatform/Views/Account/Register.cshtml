@@ -1,4 +1,4 @@
-@model OnlinCoursePlatform.ViewModels.RegisterViewModel
+@model OnlineCoursesPlatform.ViewModels.RegisterViewModel
 
 @{
     ViewData["Title"] = "Join EduMaster";
@@ -54,6 +54,11 @@
                             <label asp-for="Password" class="form-label fw-semibold">Password</label>
                             <input asp-for="Password" type="password" class="form-control" />
                             <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="ConfirmPassword" class="form-label fw-semibold">Confirm Password</label>
+                            <input asp-for="ConfirmPassword" type="password" class="form-control" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
                         </div>
 
                         <div class="form-check form-switch mb-4">

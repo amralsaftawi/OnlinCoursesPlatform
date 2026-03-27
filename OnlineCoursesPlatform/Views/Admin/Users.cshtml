@@ -43,8 +43,8 @@
                         <td>
                             <form asp-action="UpdateUserRoles" method="post" class="d-flex flex-wrap align-items-center gap-2">
                                 @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@user.Id" />
-                                <select name="primaryRole" class="form-select form-select-sm" style="max-width: 160px;">
+                                <input type="hidden" name="Id" value="@user.Id" />
+                                <select name="PrimaryRole" class="form-select form-select-sm" style="max-width: 160px;">
                                     @if (user.PrimaryRole == "Student")
                                     {
                                         <option value="Student" selected>Student Only</option>
@@ -57,20 +57,23 @@
                                     }
                                 </select>
                                 <div class="form-check">
-                                    @if (user.IsAdmin)
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="IsAdmin"
+                                           value="true"
+                                           id="admin-@user.Id"
+                                    @(user.IsAdmin ? "checked" : "")
+                                           disabled="@(isCurrentAdmin)" />
+
+                                    <label class="form-check-label small" for="admin-@user.Id">
+                                        Admin Access
+                                    </label>
+
+                                    @if (!isCurrentAdmin)
                                     {
-                                        <input class="form-check-input" type="checkbox" name="isAdmin" value="true" id="admin-@user.Id" checked="checked" disabled="@(isCurrentAdmin ? "disabled" : null)" />
+                                        <input type="hidden" name="IsAdmin" value="false" />
                                     }
-                                    else
-                                    {
-                                        <input class="form-check-input" type="checkbox" name="isAdmin" value="true" id="admin-@user.Id" disabled="@(isCurrentAdmin ? "disabled" : null)" />
-                                    }
-                                    <label class="form-check-label small" for="admin-@user.Id">Admin Access</label>
                                 </div>
-                                @if (isCurrentAdmin)
-                                {
-                                    <input type="hidden" name="isAdmin" value="true" />
-                                }
                                 <button type="submit" class="btn btn-sm btn-app-primary">Save Roles</button>
                             </form>
                             @if (isCurrentAdmin)

@@ -1,22 +1,17 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using OnlinCoursePlatform.Abstrctions;
-using OnlinCoursePlatform.Services;
-using OnlinCoursesPlatform.Data;
+using OnlineCoursesPlatform.Data;
 using OnlineCoursesPlatform.Models;
-using OnlineCoursesPlatform.Models.Enums;
 using OnlineCoursesPlatform.Repositories;
-using OnlineCoursesPlatform.Repositories.Interface;
+using OnlineCoursesPlatform.Repositories.Interfaces;
 using OnlineCoursesPlatform.Services;
 using OnlineCoursesPlatform.Services.Interfaces;
 using System.Reflection;
-//using OnlineCoursesPlatform.Mappings;
 
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Repositories & Services
 builder.Services.AddScoped<ICourseRepository, CourseRepository>();
 builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
@@ -32,7 +27,6 @@ builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// Identity
 builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
 {
     options.Password.RequireDigit = false;
@@ -48,15 +42,13 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
-
-// ✅ SEEDING (مرة واحدة بس)
 using (var scope = app.Services.CreateScope())
 {
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    string[] roles = { "Admin", "Instructor", "Student" };
+    string[] roles = ["Admin", "Instructor", "Student"];
 
     foreach (var role in roles)
     {
@@ -66,7 +58,6 @@ using (var scope = app.Services.CreateScope())
         }
     }
 
-    // 🎯 Create Admin لو مش موجود
     var admin = await userManager.FindByEmailAsync("admin@test.com") ?? await userManager.FindByNameAsync("admin");
 
     if (admin == null)
@@ -79,15 +70,14 @@ using (var scope = app.Services.CreateScope())
             LastName = "Admin"
         };
 
-        var result = await userManager.CreateAsync(admin, "Admin123!");
+        var createResult = await userManager.CreateAsync(admin, "Admin123!");
+        if (!createResult.Succeeded)
+        {
+            throw new Exception(string.Join(", ", createResult.Errors.Select(error => error.Description)));
+        }
 
-        if (!result.Succeeded)
-            throw new Exception(string.Join(",", result.Errors.Select(e => e.Description)));
-
-        // ✅ Assign Role
         await userManager.AddToRoleAsync(admin, "Admin");
 
-        // ✅ Create Admin Profile
         context.AdminProfiles.Add(new AdminProfile
         {
             ApplicationUserId = admin.Id
@@ -122,8 +112,7 @@ using (var scope = app.Services.CreateScope())
             new Category { Title = "Development" },
             new Category { Title = "Business" },
             new Category { Title = "Design" },
-            new Category { Title = "Marketing" }
-        );
+            new Category { Title = "Marketing" });
     }
 
     if (!context.Currencies.Any())
@@ -131,8 +120,7 @@ using (var scope = app.Services.CreateScope())
         context.Currencies.AddRange(
             new Currency { Name = "Egyptian Pound", Code = "EGP", Symbol = "E£" },
             new Currency { Name = "US Dollar", Code = "USD", Symbol = "$" },
-            new Currency { Name = "Euro", Code = "EUR", Symbol = "€" }
-        );
+            new Currency { Name = "Euro", Code = "EUR", Symbol = "EUR" });
     }
 
     if (!context.Tags.Any())
@@ -143,15 +131,12 @@ using (var scope = app.Services.CreateScope())
             new Tag { Name = "beginner" },
             new Tag { Name = "advanced" },
             new Tag { Name = "api" },
-            new Tag { Name = "database" }
-        );
+            new Tag { Name = "database" });
     }
 
     await context.SaveChangesAsync();
 }
 
-
-// Middleware
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -170,6 +155,5 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
 
 app.Run();

@@ -33,12 +33,21 @@ public class AdminController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateUserRoles(int id, string primaryRole, bool isAdmin)
+    public async Task<IActionResult> UpdateUserRoles(AdminUserRoleUpdateViewModel model)
     {
         try
         {
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = ModelState.Values
+                    .SelectMany(entry => entry.Errors)
+                    .Select(error => error.ErrorMessage)
+                    .FirstOrDefault() ?? "Please review the role settings and try again.";
+                return RedirectToAction(nameof(Users));
+            }
+
             var currentUserId = GetCurrentUserId();
-            await _adminService.UpdateUserRolesAsync(id, primaryRole, isAdmin, currentUserId);
+            await _adminService.UpdateUserRolesAsync(model.Id, model.PrimaryRole, model.IsAdmin, currentUserId);
             TempData["SuccessMessage"] = "User roles updated successfully.";
         }
         catch (Exception ex)
@@ -163,11 +172,20 @@ public class AdminController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateCategory(int id, string title)
+    public async Task<IActionResult> UpdateCategory(AdminCategoryUpdateViewModel model)
     {
         try
         {
-            await _adminService.UpdateCategoryAsync(id, title);
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = ModelState.Values
+                    .SelectMany(entry => entry.Errors)
+                    .Select(error => error.ErrorMessage)
+                    .FirstOrDefault() ?? "Please review the category details and try again.";
+                return RedirectToAction(nameof(Categories));
+            }
+
+            await _adminService.UpdateCategoryAsync(model.Id, model.Title);
             TempData["SuccessMessage"] = "Category updated successfully.";
         }
         catch (Exception ex)
@@ -229,11 +247,20 @@ public class AdminController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateCurrency(int id, string name, string code, string symbol)
+    public async Task<IActionResult> UpdateCurrency(AdminCurrencyUpdateViewModel model)
     {
         try
         {
-            await _adminService.UpdateCurrencyAsync(id, name, code, symbol);
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = ModelState.Values
+                    .SelectMany(entry => entry.Errors)
+                    .Select(error => error.ErrorMessage)
+                    .FirstOrDefault() ?? "Please review the currency details and try again.";
+                return RedirectToAction(nameof(Currencies));
+            }
+
+            await _adminService.UpdateCurrencyAsync(model.Id, model.Name, model.Code, model.Symbol);
             TempData["SuccessMessage"] = "Currency updated successfully.";
         }
         catch (Exception ex)
@@ -295,11 +322,20 @@ public class AdminController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> UpdateTag(int id, string name)
+    public async Task<IActionResult> UpdateTag(AdminTagUpdateViewModel model)
     {
         try
         {
-            await _adminService.UpdateTagAsync(id, name);
+            if (!ModelState.IsValid)
+            {
+                TempData["ErrorMessage"] = ModelState.Values
+                    .SelectMany(entry => entry.Errors)
+                    .Select(error => error.ErrorMessage)
+                    .FirstOrDefault() ?? "Please review the tag details and try again.";
+                return RedirectToAction(nameof(Tags));
+            }
+
+            await _adminService.UpdateTagAsync(model.Id, model.Name);
             TempData["SuccessMessage"] = "Tag updated successfully.";
         }
         catch (Exception ex)

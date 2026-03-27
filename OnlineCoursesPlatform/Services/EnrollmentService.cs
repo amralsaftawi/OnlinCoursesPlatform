@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using OnlinCoursesPlatform.Data;
+using OnlineCoursesPlatform.Data;
 using OnlineCoursesPlatform.Dtos;
 using OnlineCoursesPlatform.Models;
 using OnlineCoursesPlatform.Models.Enums;

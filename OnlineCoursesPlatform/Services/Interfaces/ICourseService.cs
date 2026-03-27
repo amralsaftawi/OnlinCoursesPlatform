@@ -8,9 +8,9 @@ namespace OnlineCoursesPlatform.Services.Interfaces
     {
         Task<(IEnumerable<CourseListViewModel> Courses, int TotalCount)> GetPaginatedCoursesAsync(int pageNumber, int pageSize);
         Task<IEnumerable<Course>> GetAllCoursesAsync();
-        Task<Course> GetCourseByIdAsync(int id);
-        Task<Course> GetCourseWithDetailsAsync(int id);
-        Task<CourseDetailsViewModel> GetCourseDetailsProjectedAsync(int id);
+        Task<Course?> GetCourseByIdAsync(int id);
+        Task<Course?> GetCourseWithDetailsAsync(int id);
+        Task<CourseDetailsViewModel?> GetCourseDetailsProjectedAsync(int id);
         Task<CourseEditorResultDto> GetCourseForEditAsync(int courseId, int actingUserId, bool isAdmin);
         Task<IEnumerable<Course>> GetCoursesWithDetailsAsync();
         Task<IEnumerable<Course>> GetCoursesByInstructorAsync(int instructorId);
