@@ -30,7 +30,7 @@ A full-featured **Online Learning Platform** that simulates a real-world system 
 ### 🏠 Home Page
 
 <p align="center">
-  <img src="./screenshots/home.png" width="85%" />
+  <img src="./screenshots/home.jpeg" width="85%" />
 </p>
 
 ---
@@ -38,7 +38,7 @@ A full-featured **Online Learning Platform** that simulates a real-world system 
 ### 📚 Courses Listing
 
 <p align="center">
-  <img src="./screenshots/courses.png" width="85%" />
+  <img src="./screenshots/courses.jpeg" width="85%" />
 </p>
 
 ---
@@ -46,7 +46,7 @@ A full-featured **Online Learning Platform** that simulates a real-world system 
 ### 📖 Course Details
 
 <p align="center">
-  <img src="./screenshots/course-details.png" width="85%" />
+  <img src="./screenshots/course-details.jpeg" width="85%" />
 </p>
 
 ---
@@ -54,7 +54,7 @@ A full-featured **Online Learning Platform** that simulates a real-world system 
 ### 🎓 Enrollment Flow
 
 <p align="center">
-  <img src="./screenshots/enrollment.png" width="85%" />
+  <img src="./screenshots/enrollment.jpeg" width="85%" />
 </p>
 
 ---
@@ -62,7 +62,7 @@ A full-featured **Online Learning Platform** that simulates a real-world system 
 ### 🎥 Learning Experience
 
 <p align="center">
-  <img src="./screenshots/learning.png" width="85%" />
+  <img src="./screenshots/learning.jpeg" width="85%" />
 </p>
 
 ---
@@ -70,7 +70,7 @@ A full-featured **Online Learning Platform** that simulates a real-world system 
 ### 👨‍🏫 Instructor Dashboard
 
 <p align="center">
-  <img src="./screenshots/instructor-dashboard.png" width="85%" />
+  <img src="./screenshots/instructor-dashboard.jpeg" width="85%" />
 </p>
 
 ---
@@ -78,7 +78,7 @@ A full-featured **Online Learning Platform** that simulates a real-world system 
 ### 🛡 Admin Dashboard
 
 <p align="center">
-  <img src="./screenshots/admin-dashboard.png" width="85%" />
+  <img src="./screenshots/admin-dashboard.jpeg" width="85%" />
 </p>
 
 ---
