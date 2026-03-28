@@ -267,7 +267,7 @@ Built using **Clean Layered Architecture**:
 ### 1️⃣ Clone the repository
 
 ```bash
-git clone https://github.com/your-repo-link.git
+git clone https://github.com/amralsaftawi/OnlinCoursesPlatform
 ```
 
 ### 2️⃣ Update Database
