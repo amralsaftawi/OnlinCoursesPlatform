@@ -30,7 +30,7 @@ A full-featured **Online Learning Platform** that simulates a real-world system 
 ### 🏠 Home Page
 
 <p align="center">
-  <img src="./screenshots/home.jpeg" width="85%" />
+  <img src="./screenshots/Home.jpeg" width="85%" />
 </p>
 
 ---
