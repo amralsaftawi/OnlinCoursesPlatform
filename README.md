@@ -1,213 +1,297 @@
 # 🎓 Online Courses Platform
 
-![.NET](https://img.shields.io/badge/.NET-ASP.NET_Core-blue)
-![Architecture](https://img.shields.io/badge/Architecture-Clean%20Architecture-brightgreen)
-![Status](https://img.shields.io/badge/Status-Active-success)
+<p align="center">
+  <b>A Production-Ready Learning Management System (LMS) built with ASP.NET MVC</b>
+</p>
 
-A full-stack e-learning platform that supports **Students, Instructors, and Admins**, enabling course creation, management, and controlled content delivery in a scalable and maintainable architecture.
+<p align="center">
+  <img src="https://img.shields.io/badge/.NET-ASP.NET%20Core-blue?style=for-the-badge&logo=dotnet" />
+  <img src="https://img.shields.io/badge/Architecture-MVC-green?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/ORM-Entity%20Framework-purple?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge" />
+</p>
 
 ---
 
 ## 🚀 Overview
 
-This project simulates a real-world **Learning Management System (LMS)** with **three distinct roles**:
+A full-featured **Online Learning Platform** that simulates a real-world system where:
 
-* 👨‍🎓 Student → consumes content
-* 👨‍🏫 Instructor → creates content
-* 🛡️ Admin → manages and controls the system
+* 🎓 Students enroll and learn
+* 👨‍🏫 Instructors create and manage courses
+* 🛡 Admins control and moderate the platform
 
-The system is designed using **Clean Architecture principles** to ensure scalability, maintainability, and clear separation of responsibilities.
-
----
-
-## 👥 Roles & Permissions
-
-### 👨‍🎓 Student
-
-* Browse courses with search & filtering
-* Enroll in courses
-* Access course content
-* Watch video lessons
-* Read article-based lessons (uploaded files)
+> Built with **clean architecture**, **real business logic**, and **scalable design**.
 
 ---
 
-### 👨‍🏫 Instructor
+## 🖥️ User Interface Preview
 
-* Create and manage courses
-* Add structured content (Sections & Lessons)
-* Upload lessons:
+### 🏠 Home Page
 
-  * 🎥 Video (via URL)
-  * 📄 Article (file upload)
-* Update or delete course content
+<p align="center">
+  <img src="./screenshots/home.png" width="85%" />
+</p>
 
 ---
 
-### 🛡️ Admin
+### 📚 Courses Listing
 
-* Manage users (Students & Instructors)
-* Control platform content
-* Monitor and moderate courses
-* Ensure system integrity and access control
-
----
-
-## ✨ Core Features
-
-* Role-based Authorization (Student / Instructor / Admin)
-* Dynamic lesson handling (Video vs Article)
-* File upload system for article lessons
-* Clean separation between layers (DTOs, Services, Controllers)
-* Validation & error handling
-* Scalable and modular design
+<p align="center">
+  <img src="./screenshots/courses.png" width="85%" />
+</p>
 
 ---
 
-## 🏗️ Architecture
+### 📖 Course Details
 
-The application follows **Clean Architecture (N-Tier)**:
-
-```id="arch2"
-Presentation Layer   → Controllers / Views  
-Application Layer    → Services / DTOs  
-Domain Layer         → Entities  
-Infrastructure Layer → Database / File Handling  
-```
-
-### Why this matters:
-
-* Decoupled components
-* Easier testing & debugging
-* Production-ready structure
+<p align="center">
+  <img src="./screenshots/course-details.png" width="85%" />
+</p>
 
 ---
 
-## 🛠️ Tech Stack
+### 🎓 Enrollment Flow
 
-| Layer        | Technology            |
-| ------------ | --------------------- |
-| Backend      | ASP.NET Core MVC      |
-| Frontend     | HTML, CSS, JavaScript |
-| Database     | SQL Server            |
-| Architecture | Clean Architecture    |
-| Concepts     | DI, LINQ, DTO Pattern |
+<p align="center">
+  <img src="./screenshots/enrollment.png" width="85%" />
+</p>
+
+---
+
+### 🎥 Learning Experience
+
+<p align="center">
+  <img src="./screenshots/learning.png" width="85%" />
+</p>
+
+---
+
+### 👨‍🏫 Instructor Dashboard
+
+<p align="center">
+  <img src="./screenshots/instructor-dashboard.png" width="85%" />
+</p>
+
+---
+
+### 🛡 Admin Dashboard
+
+<p align="center">
+  <img src="./screenshots/admin-dashboard.png" width="85%" />
+</p>
+
+---
+
+## 🎯 Key Features
+
+### 👥 Role-Based System
+
+* **Student** → enroll, learn, track progress, take quizzes
+* **Instructor** → create courses, upload content, manage lessons
+* **Admin** → manage users, approve courses, control system
+
+---
+
+### 📚 Course Management
+
+* Create & edit courses
+* Upload course images
+* Organize into **Sections & Lessons**
+* Workflow:
+
+  * `Pending → Approved → Rejected`
+
+---
+
+### 🎥 Lesson System
+
+Supports multiple content types:
+
+* 🔗 Video (URL-based)
+* 📄 Article (file upload)
+* 📕 PDF documents
+* 🧠 Quiz system
+
+---
+
+### 📈 Learning Experience
+
+* Track progress percentage
+* Mark lessons as completed
+* Continue learning feature
+* Access control (must be enrolled)
+
+---
+
+### 🧠 Quiz Engine
+
+* Multiple question types
+* Validation & feedback
+* Integrated with progress tracking
+
+---
+
+### 🔐 Authentication & Security
+
+* ASP.NET Identity
+* Role-based authorization
+* Secure endpoints
+
+---
+
+### 📊 Dashboards
+
+* Instructor stats (students, revenue, courses)
+* Admin dashboard (analytics & control panel)
+
+---
+
+## 🏗 Architecture
+
+Built using **Clean Layered Architecture**:
+
+* MVC (Model - View - Controller)
+* Services Layer (Business Logic)
+* Repository Pattern
+* DTOs & ViewModels
+* Entity Framework Core
+
+---
+
+## ⚙️ Tech Stack
+
+* ASP.NET Core MVC
+* Entity Framework Core
+* SQL Server
+* AutoMapper
+* ASP.NET Identity
+* Bootstrap
+* JavaScript / AJAX
 
 ---
 
 ## 📂 Project Structure
 
-```id="struct2"
-/Controllers      → Handles HTTP requests  
-/Services         → Business logic layer  
-/DTOs             → Data transfer objects  
-/Models           → Core entities  
-/Views            → Razor UI  
-/wwwroot          → Static assets  
+```bash
+📦 OnlineCoursesPlatform
+ ┣ 📂 Controllers
+ ┣ 📂 Services
+ ┣ 📂 Repositories
+ ┣ 📂 Models
+ ┣ 📂 ViewModels
+ ┣ 📂 Dtos
+ ┣ 📂 Data
+ ┣ 📂 Views
+ ┗ 📂 wwwroot
 ```
 
 ---
 
-## ⚡ Key Engineering Concepts
+## 🔥 What Makes This Project Stand Out?
 
-* Role-Based Access Control (RBAC)
-* DTO vs ViewModel separation
-* Dependency Injection (DI)
-* File Handling (Upload & Rendering)
-* Dynamic content rendering
-* Clean code & modular design
+* Real-world **business logic (NOT CRUD)**
+* Advanced **role-based system**
+* Dynamic **lesson content system**
+* Scalable architecture
+* Clean code structure
 
 ---
 
-## ▶️ Getting Started
+## ⚠️ Challenges & Solutions
+
+| Challenge             | Solution                         |
+| --------------------- | -------------------------------- |
+| Multiple lesson types | Unified content handling system  |
+| Role management       | ASP.NET Identity + Authorization |
+| Progress tracking     | Efficient DB updates             |
+| Data consistency      | Controlled service layer         |
+
+---
+
+## 🚧 Future Improvements
+
+* 💳 Payment integration
+* 📺 Live sessions
+* 📜 Certificates
+* 📱 Mobile optimization
+
+---
+
+## 👨‍💻 Team
+
+<div align="center">
+
+<table>
+<tr>
+
+<td align="center" width="200px">
+<a href="https://github.com/ahmedaldsoaky">
+<img src="https://github.com/ahmedaldsoaky.png" width="100px;" style="border-radius:50%;" />
+<br />
+<sub><b>Ahmed Aldsoaky</b></sub>
+</a>
+<br />
+<sub>.NET Backend Engineer</sub>
+</td>
+
+<td align="center" width="200px">
+<a href="https://github.com/amralsaftawi">
+<img src="https://github.com/amralsaftawi.png" width="100px;" style="border-radius:50%;" />
+<br />
+<sub><b>Amr Alsaftawi</b></sub>
+</a>
+<br />
+<sub>.NET Backend Engineer</sub>
+</td>
+
+<td align="center" width="200px">
+<a href="https://github.com/MohamedElsheikh17">
+<img src="https://github.com/MohamedElsheikh17.png" width="100px;" style="border-radius:50%;" />
+<br />
+<sub><b>Mohamed Elsheikh</b></sub>
+</a>
+<br />
+<sub>.NET Backend Engineer</sub>
+</td>
+
+</tr>
+</table>
+
+</div>
+
+---
+
+## 📌 Getting Started
 
 ### 1️⃣ Clone the repository
 
-```bash id="cmd11"
-git clone https://github.com/amralsaftawi/OnlinCoursesPlatform.git
-cd OnlinCoursesPlatform
+```bash
+git clone https://github.com/your-repo-link.git
 ```
 
----
+### 2️⃣ Update Database
 
-### 2️⃣ Configure Database
-
-Update:
-
-```id="cfg1"
-appsettings.json
+```bash
+Update-Database
 ```
-
-Then run:
-
-```bash id="cmd22"
-dotnet ef database update
-```
-
----
 
 ### 3️⃣ Run the project
 
-```bash id="cmd33"
+```bash
 dotnet run
 ```
 
 ---
 
-## 📸 Screenshots
-
-> Add real screenshots here to showcase:
-
-* Home Page
-* Course Details
-* Lesson View (Video / Article)
-* Instructor Dashboard
-* Admin Panel
-
----
-
-## 🔮 Future Improvements
-
-* 🧪 Quizzes & Exams
-* 💳 Payment System
-* ⭐ Ratings & Reviews
-* 💬 Real-time Chat
-* 📊 Admin Analytics Dashboard
-* 🎥 Internal video hosting
-
----
-
-## 🤝 Contributing
-
-```bash id="flow2"
-1. Fork the repo
-2. Create your branch
-3. Commit your changes
-4. Open a Pull Request
-```
-
----
-
-## 👨‍💻 Authors
-
-* **Amr Alsaftawi**
-  https://github.com/amralsaftawi
-
-* **Ahmed Aldsoaky**
-  https://github.com/ahmedaldsoaky
-
-* **Mohamed Elsheikh**
-  https://github.com/MohamedElsheikh17
-
----
-
-## ⭐ Final Notes
+## 💡 Final Note
 
 This project demonstrates:
 
-* Building a real-world LMS system
-* Handling multi-role architecture
-* Applying clean architecture in ASP.NET Core
-* Designing scalable backend systems
+* Real-world backend engineering
+* System design thinking
+* Scalable architecture principles
 
-It represents a strong step toward production-level backend development.
+🚀 Built to reflect production-level development, not just academic work.
+
+---
